@@ -1,4 +1,5 @@
-import { NotYetImplementedError, type Step, type StepContext } from "../steps.ts";
+import { seedAll, tenantClient } from "../seed-core.ts";
+import type { Step, StepContext } from "../steps.ts";
 
 export const supabaseSeedStep: Step = {
   name: "supabase_seed",
@@ -9,7 +10,19 @@ export const supabaseSeedStep: Step = {
     const locs = init.locations?.length ?? 0;
     return `Seed taxonomies (${cats} categories, ${stats} statuses, ${locs} locations) via seed-tenant.ts`;
   },
-  async execute(_ctx: StepContext): Promise<void> {
-    throw new NotYetImplementedError("supabase_seed");
+  async execute(ctx: StepContext): Promise<void> {
+    const create = ctx.state.steps.supabase_create;
+    if (!create?.service_role_key || !create.supabase_url) {
+      throw new Error(
+        "supabase_seed: supabase_create must complete first (missing service_role_key or supabase_url in state)"
+      );
+    }
+    const init = ctx.manifest.initial_data ?? {};
+    const supabase = tenantClient(create.supabase_url, create.service_role_key);
+    await seedAll(supabase, init);
+
+    ctx.state.steps.supabase_seed = {
+      completed_at: new Date().toISOString(),
+    };
   },
 };

@@ -131,7 +131,12 @@ export function saveState(state: State): void {
 }
 
 export function isStepComplete(state: State, step: StepName): boolean {
-  return state.steps[step] !== undefined;
+  // A step is "complete" only if it ran end-to-end and set `completed_at`.
+  // Some steps (e.g., supabase_create with its slow poll) persist partial
+  // results mid-execution — those don't count as complete and a resume
+  // run picks them back up rather than re-creating the resource.
+  const result = state.steps[step] as { completed_at?: string } | undefined;
+  return result?.completed_at !== undefined;
 }
 
 export function markStep<K extends StepName>(

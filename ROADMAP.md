@@ -34,7 +34,8 @@ Move per-business values out of the VAPI assistant config into `business_config.
 
 - **4a (done):** Foundation — manifest extension (`provisioning:` block), state machinery (`provisioning/state/<slug>.json`), `.env` loader with operator-level defaults, ordered step registry, `provision-customer.ts` orchestrator with `--dry-run` / `--resume` / `--only=...` flags. Every step stubbed with a real `describe()` for dry-run; `execute()` throws `NotYetImplementedError`. Dry-run against any manifest prints the full 14-step plan.
 - **4b (done):** `github_fork` step + tests. `lib/clients/github.ts` is a minimal GitHub REST client (auth user, get repo, fork). Step is idempotent (reuses an existing fork named `trackhq-<slug>` if one already exists) and handles both personal-account and org targets. Test infrastructure (`tests/` with node:test runner, fetch mock, context builders) added.
-- **4c–4f (pending):** Supabase, VAPI, Vercel, Railway, runbook generator.
+- **4c (done):** Supabase trio — `supabase_create`, `supabase_schema`, `supabase_seed`. `lib/clients/supabase.ts` wraps the Management API (create project, poll until ACTIVE_HEALTHY, get anon/service_role keys, run arbitrary SQL). `supabase_create` persists `project_ref` + `db_password` *before* the slow poll, so a mid-wait crash resumes against the same project instead of orphaning a paid one. `isStepComplete` switched from "key present" to "completed_at present" to support partial-state resume. `seed-tenant.ts`'s upsert logic moved to `lib/seed-core.ts` so the new `supabase_seed` step can reuse it.
+- **4d–4f (pending):** VAPI, Vercel, Railway, runbook generator.
 
 ## Phase 5 — Operator control panel
 
