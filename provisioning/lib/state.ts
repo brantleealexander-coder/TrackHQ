@@ -23,7 +23,6 @@ export type StepName =
   | "supabase_schema"
   | "supabase_seed"
   | "vapi_create"
-  | "vapi_patch"
   | "vercel_create"
   | "vercel_envs"
   | "vercel_deploy"
@@ -96,7 +95,6 @@ export interface State {
     supabase_schema: SimpleStepResult;
     supabase_seed: SimpleStepResult;
     vapi_create: VapiCreateResult;
-    vapi_patch: SimpleStepResult;
     vercel_create: VercelCreateResult;
     vercel_envs: SimpleStepResult;
     vercel_deploy: VercelDeployResult;

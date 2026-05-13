@@ -64,6 +64,16 @@ export interface ProvisioningBlock {
   twilio_area_code?: string | null;
 }
 
+export interface ReceptionistBlock {
+  name?: string | null;
+  voice_provider?: string | null;
+  voice_id?: string | null;
+  timezone?: string | null;
+  first_message?: string | null;
+  transfer_phone?: string | null;
+  transfer_message?: string | null;
+}
+
 export interface RawManifest {
   slug: string;
   business_name: string;
@@ -73,6 +83,7 @@ export interface RawManifest {
   contact?: ContactBlock;
   features?: FeaturesBlock;
   provisioning?: ProvisioningBlock;
+  receptionist?: ReceptionistBlock;
   initial_data?: {
     categories?: string[];
     statuses?: StatusManifest[];

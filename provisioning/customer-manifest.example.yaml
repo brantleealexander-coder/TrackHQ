@@ -27,6 +27,19 @@ features:
   quickbooks: true
   chatbot: true
 
+# AI receptionist config. All fields optional — defaults below are used when
+# omitted. transfer_phone defaults to `contact.phone`. Phase 4d uses these
+# to render the VAPI assistant config; the operator can later refine
+# template-server/app/business_config.json on the deployed Railway service.
+receptionist:
+  name: Alex                          # default: "Alex"
+  voice_provider: 11labs              # default: "11labs"
+  voice_id: 21m00Tcm4TlvDq8ikWAM      # default: 11labs "Rachel"
+  timezone: America/Chicago           # default: "America/Chicago"
+  first_message: null                 # default: "Thank you for calling <business>, how can I help you today?"
+  transfer_phone: null                # default: contact.phone
+  transfer_message: null              # default: "One moment, I'll connect you with the team."
+
 # Phase 4: per-customer overrides for provisioning. Anything left out falls
 # back to the DEFAULT_* values in provisioning/.env.
 provisioning:

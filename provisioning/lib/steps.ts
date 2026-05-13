@@ -44,7 +44,6 @@ import { supabaseCreateStep } from "./steps/supabase_create.ts";
 import { supabaseSchemaStep } from "./steps/supabase_schema.ts";
 import { supabaseSeedStep } from "./steps/supabase_seed.ts";
 import { vapiCreateStep } from "./steps/vapi_create.ts";
-import { vapiPatchStep } from "./steps/vapi_patch.ts";
 import { vercelCreateStep } from "./steps/vercel_create.ts";
 import { vercelEnvsStep } from "./steps/vercel_envs.ts";
 import { vercelDeployStep } from "./steps/vercel_deploy.ts";
@@ -60,7 +59,6 @@ export const STEPS: Step[] = [
   supabaseSchemaStep,
   supabaseSeedStep,
   vapiCreateStep,
-  vapiPatchStep,
   vercelCreateStep,
   vercelEnvsStep,
   vercelDeployStep,

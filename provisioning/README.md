@@ -45,16 +45,15 @@ file before the next runs, so `--resume` can pick up after a failure.
 2. `supabase_create` — create the Supabase project, poll until healthy, capture keys
 3. `supabase_schema` — run `template-dashboard/supabase_schema.sql`
 4. `supabase_seed` — seed categories / statuses / locations
-5. `vapi_create` — create the VAPI assistant (placeholder webhook URL)
-6. `vapi_patch` — render + PATCH the template into it
-7. `vercel_create` — create the Vercel project linked to the fork
-8. `vercel_envs` — set NEXT_PUBLIC_TENANT_CONFIG_JSON + Supabase + Mapbox vars
-9. `vercel_deploy` — trigger the first deploy
-10. `railway_create` — create the Railway project + service from the fork
-11. `railway_envs` — set Supabase + VAPI env vars
-12. `railway_deploy` — trigger the first deploy, capture the public URL
-13. `vapi_webhook_update` — PATCH the assistant with the real Railway URL
-14. `runbook` — emit per-tenant `provisioning/state/<slug>.runbook.md`
+5. `vapi_create` — create the VAPI assistant with the rendered template (placeholder webhook URL)
+6. `vercel_create` — create the Vercel project linked to the fork
+7. `vercel_envs` — set NEXT_PUBLIC_TENANT_CONFIG_JSON + Supabase + Mapbox vars
+8. `vercel_deploy` — trigger the first deploy
+9. `railway_create` — create the Railway project + service from the fork
+10. `railway_envs` — set Supabase + VAPI env vars
+11. `railway_deploy` — trigger the first deploy, capture the public URL
+12. `vapi_webhook_update` — PATCH the assistant with the real Railway URL
+13. `runbook` — emit per-tenant `provisioning/state/<slug>.runbook.md`
 
 ## Implementation status
 
