@@ -2,9 +2,9 @@
 #
 # `provisioning/seed-tenant.ts` reads the `initial_data` block to seed the
 # categories / statuses / locations tables of a tenant's Supabase project.
-# The full Phase 4 `provision-customer.ts` CLI will use the other fields
-# (slug, business_name, features, etc.) to spin up Vercel + Railway and
-# write env vars.
+# `provisioning/provision-customer.ts` reads the entire file to spin up
+# GitHub fork + Supabase + Vercel + Railway + VAPI and emit a runbook for
+# the manual steps that remain.
 
 slug: acme-excavators
 business_name: Acme Excavators
@@ -26,6 +26,25 @@ features:
   samsara: true
   quickbooks: true
   chatbot: true
+
+# Phase 4: per-customer overrides for provisioning. Anything left out falls
+# back to the DEFAULT_* values in provisioning/.env.
+provisioning:
+  # GitHub owner (user or org) that will own the per-customer fork of TrackHQ.
+  github_owner: null
+  # Supabase organization to host this tenant's project in.
+  supabase_org_id: null
+  # Supabase region. See: https://supabase.com/docs/guides/platform/regions
+  supabase_region: null
+  # Vercel team (null = personal account).
+  vercel_team_id: null
+  # Railway team (null = personal account).
+  railway_team_id: null
+  # Public domain to attach. null = use Vercel-assigned *.vercel.app for now;
+  # the runbook will include DNS instructions.
+  domain: null
+  # Hint for the Twilio number-purchase step in the generated runbook.
+  twilio_area_code: null
 
 initial_data:
   # Asset categories — surface as the "Category" dropdown across the dashboard.

@@ -32,6 +32,9 @@ Move per-business values out of the VAPI assistant config into `business_config.
 
 `provisioning/provision-customer.ts` CLI that takes a `customer-manifest.yaml` and creates the Supabase project, runs the schema, seeds taxonomies, creates the Vercel project, sets env vars, creates the Railway service, and emits a runbook for manual steps. **Done when** provisioning a fake test customer takes under 60 min of operator time.
 
+- **4a (done):** Foundation — manifest extension (`provisioning:` block), state machinery (`provisioning/state/<slug>.json`), `.env` loader with operator-level defaults, ordered step registry, `provision-customer.ts` orchestrator with `--dry-run` / `--resume` / `--only=...` flags. Every step stubbed with a real `describe()` for dry-run; `execute()` throws `NotYetImplementedError`. Dry-run against any manifest prints the full 14-step plan.
+- **4b–4f (pending):** Fill in `execute()` for each step in turn — GitHub fork, Supabase, VAPI, Vercel, Railway, runbook generator.
+
 ## Phase 5 — Operator control panel
 
 Separate Next.js app (`control-panel/`) deployed only for Brantlee. Tabs: Customers, Health, Cost (per-tenant cost aggregation across Vercel/Supabase/Railway/Anthropic/VAPI/Twilio), Billing (Stripe). **Done when** cost-per-customer reports query in under 30 sec.

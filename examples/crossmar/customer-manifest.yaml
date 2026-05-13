@@ -21,6 +21,18 @@ features:
   quickbooks: true
   chatbot: true
 
+# Provisioning overrides — see provisioning/customer-manifest.example.yaml
+# for full docs. Crossmar already runs on its own infra; this block is here
+# only so the eventual migration onto TrackHQ has a target manifest.
+provisioning:
+  github_owner: null
+  supabase_org_id: null
+  supabase_region: null
+  vercel_team_id: null
+  railway_team_id: null
+  domain: trackhq.crossmarrentals.com
+  twilio_area_code: "469"
+
 initial_data:
   categories:
     - Dozers

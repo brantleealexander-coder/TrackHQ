@@ -5,6 +5,7 @@
   "description": "Operator-only scripts for spinning up TrackHQ tenants.",
   "scripts": {
     "seed-tenant": "tsx seed-tenant.ts",
+    "provision": "tsx provision-customer.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

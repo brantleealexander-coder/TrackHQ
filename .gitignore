@@ -28,3 +28,6 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Provisioning state — contains per-tenant secrets (db passwords, service role keys).
+provisioning/state/
