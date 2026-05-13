@@ -45,10 +45,7 @@ import { supabaseSchemaStep } from "./steps/supabase_schema.ts";
 import { supabaseSeedStep } from "./steps/supabase_seed.ts";
 import { vapiCreateStep } from "./steps/vapi_create.ts";
 import { vercelCreateStep } from "./steps/vercel_create.ts";
-import { vercelEnvsStep } from "./steps/vercel_envs.ts";
-import { vercelDeployStep } from "./steps/vercel_deploy.ts";
 import { railwayCreateStep } from "./steps/railway_create.ts";
-import { railwayEnvsStep } from "./steps/railway_envs.ts";
 import { railwayDeployStep } from "./steps/railway_deploy.ts";
 import { vapiWebhookUpdateStep } from "./steps/vapi_webhook_update.ts";
 import { runbookStep } from "./steps/runbook.ts";
@@ -60,10 +57,7 @@ export const STEPS: Step[] = [
   supabaseSeedStep,
   vapiCreateStep,
   vercelCreateStep,
-  vercelEnvsStep,
-  vercelDeployStep,
   railwayCreateStep,
-  railwayEnvsStep,
   railwayDeployStep,
   vapiWebhookUpdateStep,
   runbookStep,

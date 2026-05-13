@@ -24,10 +24,7 @@ export type StepName =
   | "supabase_seed"
   | "vapi_create"
   | "vercel_create"
-  | "vercel_envs"
-  | "vercel_deploy"
   | "railway_create"
-  | "railway_envs"
   | "railway_deploy"
   | "vapi_webhook_update"
   | "runbook";
@@ -56,11 +53,8 @@ export interface VapiCreateResult {
 export interface VercelCreateResult {
   project_id: string;
   project_name: string;
-  completed_at: string;
-}
-
-export interface VercelDeployResult {
-  deployment_url: string;
+  /** Vercel-assigned production domain (e.g. trackhq-acme.vercel.app). */
+  default_domain: string;
   completed_at: string;
 }
 
@@ -96,10 +90,7 @@ export interface State {
     supabase_seed: SimpleStepResult;
     vapi_create: VapiCreateResult;
     vercel_create: VercelCreateResult;
-    vercel_envs: SimpleStepResult;
-    vercel_deploy: VercelDeployResult;
     railway_create: RailwayCreateResult;
-    railway_envs: SimpleStepResult;
     railway_deploy: RailwayDeployResult;
     vapi_webhook_update: SimpleStepResult;
     runbook: RunbookResult;
