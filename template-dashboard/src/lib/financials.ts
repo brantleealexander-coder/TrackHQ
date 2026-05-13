@@ -1,5 +1,7 @@
 // Pure financial calculation functions — no Supabase calls here.
 
+import type { Status } from "./types";
+
 export interface FleetSummary {
   totalUnits: number;
   onRentCount: number;
@@ -7,6 +9,21 @@ export interface FleetSummary {
   downCount: number;
   reservedCount: number;
   utilization: number; // percentage 0–100
+}
+
+// Aggregate per-status-key counts into per-behavior counts so the fleet
+// summary works for any tenant's status taxonomy.
+function countByBehavior(
+  statusCounts: Record<string, number>,
+  statuses: Status[]
+): Record<string, number> {
+  const behaviorByKey = new Map<string, string>(statuses.map((s) => [s.key, s.behavior]));
+  const out: Record<string, number> = {};
+  for (const [key, count] of Object.entries(statusCounts)) {
+    const behavior = behaviorByKey.get(key) ?? "unknown";
+    out[behavior] = (out[behavior] ?? 0) + count;
+  }
+  return out;
 }
 
 export interface RevenueSummary {
@@ -35,13 +52,16 @@ export interface RevenueByUnit {
 
 export function computeFleetSummary(
   statusCounts: Record<string, number>,
-  totalUnits: number
+  totalUnits: number,
+  statuses: Status[]
 ): FleetSummary {
-  const onRent = statusCounts["ON RENT"] ?? 0;
-  const available = statusCounts["AVAILABLE"] ?? 0;
-  const down = statusCounts["DOWN"] ?? 0;
-  const reserved = statusCounts["RESERVED"] ?? 0;
-  // Exclude DOWN units from denominator — they can't be rented
+  const byBehavior = countByBehavior(statusCounts, statuses);
+  const onRent = byBehavior.rented ?? 0;
+  const available = byBehavior.available ?? 0;
+  const down = byBehavior.out_of_service ?? 0;
+  const reserved = byBehavior.reserved ?? 0;
+  // Exclude out-of-service units from the utilization denominator — they
+  // can't be rented.
   const rentable = totalUnits - down;
   const utilization = rentable > 0 ? Math.round((onRent / rentable) * 100) : 0;
 
@@ -152,11 +172,13 @@ interface StatusRow {
 
 export function findOverdueRentals(
   fleet: StatusRow[],
+  statuses: Status[],
   today: Date = new Date()
 ): OverdueRental[] {
+  const behaviorByKey = new Map<string, string>(statuses.map((s) => [s.key, s.behavior]));
   const results: OverdueRental[] = [];
   for (const row of fleet) {
-    if (row.status !== "ON RENT" || !row.rental_end) continue;
+    if (behaviorByKey.get(row.status) !== "rented" || !row.rental_end) continue;
     const end = new Date(row.rental_end);
     if (end < today) {
       const daysOverdue = Math.ceil(

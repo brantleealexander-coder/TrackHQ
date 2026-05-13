@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import type { EquipmentStatus, RateType } from "@/lib/types";
+import { useState, useMemo } from "react";
+import type { RateType, Status } from "@/lib/types";
 
 interface EquipmentOption {
   id: number;
@@ -11,28 +11,30 @@ interface EquipmentOption {
   categories: { name: string } | null;
 }
 
-const STATUS_OPTIONS: EquipmentStatus[] = [
-  "ON RENT",
-  "AVAILABLE",
-  "DOWN",
-  "RESERVED",
-  "IN SERVICE",
-  "OFF RENT PENDING",
-];
-
 const RATE_OPTIONS: RateType[] = ["daily", "weekly", "monthly"];
 
 interface StatusFormProps {
   equipment: EquipmentOption[];
+  statuses: Status[];
 }
 
 function today(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-export default function StatusForm({ equipment }: StatusFormProps) {
+// Initial status defaults to the first 'available' behavior, then any
+// status, then empty.
+function pickInitialStatus(statuses: Status[]): string {
+  return (
+    statuses.find((s) => s.behavior === "available")?.key ??
+    statuses[0]?.key ??
+    ""
+  );
+}
+
+export default function StatusForm({ equipment, statuses }: StatusFormProps) {
   const [selectedId, setSelectedId] = useState<number | "">("");
-  const [status, setStatus] = useState<EquipmentStatus>("AVAILABLE");
+  const [status, setStatus] = useState<string>(() => pickInitialStatus(statuses));
   const [customerName, setCustomerName] = useState("");
   const [jobPo, setJobPo] = useState("");
   const [rateType, setRateType] = useState<RateType>("monthly");
@@ -43,9 +45,15 @@ export default function StatusForm({ equipment }: StatusFormProps) {
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
-  const showCustomer = status === "ON RENT" || status === "RESERVED";
-  const showRentalFields = status === "ON RENT";
-  const showRentalEnd = status === "ON RENT" || status === "OFF RENT PENDING";
+  const behaviorByKey = useMemo(
+    () => new Map<string, string>(statuses.map((s) => [s.key, s.behavior])),
+    [statuses]
+  );
+  const behavior = behaviorByKey.get(status);
+
+  const showCustomer = behavior === "rented" || behavior === "reserved";
+  const showRentalFields = behavior === "rented";
+  const showRentalEnd = behavior === "rented" || behavior === "pending_return";
 
   // Group equipment by category for the dropdown
   const byCategory = new Map<string, EquipmentOption[]>();
@@ -86,15 +94,16 @@ export default function StatusForm({ equipment }: StatusFormProps) {
       setError(data.error ?? "Something went wrong. Please try again.");
     } else {
       const eq = equipment.find((e) => e.id === selectedId);
+      const statusName = statuses.find((s) => s.key === status)?.name ?? status;
       setSuccess(
-        `Updated: ${eq?.gl_code} — ${eq?.equipment_name} → ${status}` +
+        `Updated: ${eq?.gl_code} — ${eq?.equipment_name} → ${statusName}` +
           (data.revenue_amount
             ? ` ($${data.revenue_amount.toLocaleString("en-US", { maximumFractionDigits: 0 })} revenue recorded)`
             : "")
       );
       // Reset form
       setSelectedId("");
-      setStatus("AVAILABLE");
+      setStatus(pickInitialStatus(statuses));
       setCustomerName("");
       setJobPo("");
       setRateType("monthly");
@@ -137,13 +146,14 @@ export default function StatusForm({ equipment }: StatusFormProps) {
         </label>
         <select
           value={status}
-          onChange={(e) => setStatus(e.target.value as EquipmentStatus)}
+          onChange={(e) => setStatus(e.target.value)}
           required
           className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         >
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>
-              {s}
+          {statuses.length === 0 && <option value="">— No statuses configured —</option>}
+          {statuses.map((s) => (
+            <option key={s.key} value={s.key}>
+              {s.name}
             </option>
           ))}
         </select>
@@ -153,13 +163,13 @@ export default function StatusForm({ equipment }: StatusFormProps) {
       {showCustomer && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            Customer Name{status === "ON RENT" && <span className="text-red-500"> *</span>}
+            Customer Name{behavior === "rented" && <span className="text-red-500"> *</span>}
           </label>
           <input
             type="text"
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
-            required={status === "ON RENT"}
+            required={behavior === "rented"}
             className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Customer or company name"
           />

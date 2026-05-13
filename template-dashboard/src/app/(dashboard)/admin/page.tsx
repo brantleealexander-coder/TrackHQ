@@ -1,5 +1,10 @@
 import { unstable_noStore as noStore } from "next/cache";
-import { getEquipmentList } from "@/lib/queries";
+import {
+  getEquipmentList,
+  getStatuses,
+  getCategories,
+  getLocations,
+} from "@/lib/queries";
 import StatusForm from "@/components/status-form";
 import AddEquipmentForm from "@/components/add-equipment-form";
 import RemoveEquipmentForm from "@/components/remove-equipment-form";
@@ -8,7 +13,12 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   noStore();
-  const equipment = await getEquipmentList();
+  const [equipment, statuses, categories, locations] = await Promise.all([
+    getEquipmentList(),
+    getStatuses(),
+    getCategories(),
+    getLocations(),
+  ]);
 
   return (
     <div className="space-y-12">
@@ -20,7 +30,7 @@ export default async function AdminPage() {
             Select a unit and enter its current rental status. Changes are saved instantly and reflected on the Fleet and Financials pages.
           </p>
         </div>
-        <StatusForm equipment={equipment as never} />
+        <StatusForm equipment={equipment as never} statuses={statuses} />
       </div>
 
       {/* Divider */}
@@ -31,10 +41,10 @@ export default async function AdminPage() {
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Add New Equipment</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Add a newly purchased or transferred unit to the fleet. It will appear as Available immediately.
+            Add a newly purchased or transferred unit to the fleet. It will appear as available immediately.
           </p>
         </div>
-        <AddEquipmentForm />
+        <AddEquipmentForm categories={categories} locations={locations} />
       </div>
 
       {/* Divider */}

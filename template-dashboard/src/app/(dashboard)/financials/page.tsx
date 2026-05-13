@@ -5,6 +5,7 @@ import {
   getRentalHistory,
   getActiveRentals,
   getAllMaintenanceLogs,
+  getStatuses,
 } from "@/lib/queries";
 import {
   computeFleetSummary,
@@ -20,17 +21,18 @@ export const dynamic = "force-dynamic";
 
 export default async function FinancialsPage() {
   noStore();
-  const [fleet, statusCounts, history, activeRentals, maintenanceLogs] = await Promise.all([
+  const [fleet, statusCounts, history, activeRentals, maintenanceLogs, statuses] = await Promise.all([
     getFleet(),
     getStatusCounts(),
     getRentalHistory(),
     getActiveRentals(),
     getAllMaintenanceLogs(),
+    getStatuses(),
   ]);
 
-  const fleetSummary = computeFleetSummary(statusCounts, fleet.length);
+  const fleetSummary = computeFleetSummary(statusCounts, fleet.length, statuses);
   const revenueSummary = computeRevenueSummary(history, activeRentals as never);
-  const overdue = findOverdueRentals(fleet);
+  const overdue = findOverdueRentals(fleet, statuses);
   const maintenanceSummary = computeMaintenanceSummary(maintenanceLogs);
 
   const equipmentMap = new Map(

@@ -5,6 +5,7 @@ import {
   getUnitDetail,
   getUnitRentalHistory,
   getUnitMaintenanceLogs,
+  getStatuses,
 } from "@/lib/queries";
 import { formatCurrency } from "@/lib/financials";
 import StatusBadge from "@/components/status-badge";
@@ -22,10 +23,11 @@ export default async function UnitDetailPage({
   const id = parseInt(params.id, 10);
   if (isNaN(id)) notFound();
 
-  const [rawUnit, rentalHistory, maintenanceLogs] = await Promise.all([
+  const [rawUnit, rentalHistory, maintenanceLogs, statuses] = await Promise.all([
     getUnitDetail(id).catch(() => null),
     getUnitRentalHistory(id),
     getUnitMaintenanceLogs(id),
+    getStatuses(),
   ]);
 
   if (!rawUnit) notFound();
@@ -69,7 +71,10 @@ export default async function UnitDetailPage({
             </p>
           </div>
           {currentStatus && (
-            <StatusBadge status={currentStatus.status as never} />
+            <StatusBadge
+              status={currentStatus.status}
+              statusInfo={statuses.find((s) => s.key === currentStatus.status) ?? null}
+            />
           )}
         </div>
       </div>

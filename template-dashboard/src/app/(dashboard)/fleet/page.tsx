@@ -1,5 +1,5 @@
 import { unstable_noStore as noStore } from "next/cache";
-import { getFleet, getStatusCounts } from "@/lib/queries";
+import { getFleet, getStatusCounts, getStatuses } from "@/lib/queries";
 import { computeFleetSummary } from "@/lib/financials";
 import FleetTable from "@/components/fleet-table";
 import StatCard from "@/components/stat-card";
@@ -9,12 +9,13 @@ export const dynamic = "force-dynamic";
 
 export default async function FleetPage() {
   noStore();
-  const [fleet, statusCounts] = await Promise.all([
+  const [fleet, statusCounts, statuses] = await Promise.all([
     getFleet(),
     getStatusCounts(),
+    getStatuses(),
   ]);
 
-  const summary = computeFleetSummary(statusCounts, fleet.length);
+  const summary = computeFleetSummary(statusCounts, fleet.length, statuses);
 
   // Group by category
   const byCategory = new Map<number, { name: string; rows: FleetRow[] }>();
@@ -62,7 +63,7 @@ export default async function FleetPage() {
 
       {/* Equipment tables by category */}
       {categories.map(([catId, { name, rows }]) => (
-        <FleetTable key={catId} rows={rows} categoryName={name} />
+        <FleetTable key={catId} rows={rows} categoryName={name} statuses={statuses} />
       ))}
     </div>
   );

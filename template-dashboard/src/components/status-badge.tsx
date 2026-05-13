@@ -1,21 +1,22 @@
-import type { EquipmentStatus } from "@/lib/types";
+import type { Status } from "@/lib/types";
 
-const styles: Record<EquipmentStatus, string> = {
-  "ON RENT":          "bg-green-100 text-green-800",
-  "AVAILABLE":        "bg-blue-100 text-blue-800",
-  "DOWN":             "bg-red-100 text-red-800",
-  "RESERVED":         "bg-amber-100 text-amber-800",
-  "IN SERVICE":       "bg-orange-100 text-orange-800",
-  "OFF RENT PENDING": "bg-gray-100 text-gray-700",
-};
+interface StatusBadgeProps {
+  status: string;
+  statusInfo: Status | null;
+}
 
-export default function StatusBadge({ status }: { status: EquipmentStatus }) {
-  const cls = styles[status] ?? "bg-gray-100 text-gray-700";
+export default function StatusBadge({ status, statusInfo }: StatusBadgeProps) {
+  const color = statusInfo?.color ?? "#6b7280";
+  const label = statusInfo?.name ?? status;
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${cls}`}
+      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
+      style={{
+        backgroundColor: `color-mix(in srgb, ${color} 15%, white)`,
+        color: `color-mix(in srgb, ${color} 80%, black)`,
+      }}
     >
-      {status}
+      {label}
     </span>
   );
 }

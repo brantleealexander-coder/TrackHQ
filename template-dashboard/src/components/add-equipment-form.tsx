@@ -1,42 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import type { Category, Location } from "@/lib/types";
 
-// TODO Phase 2b: load categories from DB via getCategories() instead of this
-// hardcoded Crossmar-specific list. The submit field name is already
-// category_id so swapping the data source is a UI-only change.
-const DIVISIONS = [
-  { id: 1, name: "Dozers" },
-  { id: 2, name: "Articulating Trucks" },
-  { id: 3, name: "Excavators" },
-  { id: 4, name: "Mini Excavators" },
-  { id: 5, name: "Compactor" },
-  { id: 6, name: "Wheel Loaders" },
-  { id: 7, name: "Backhoe Loader" },
-  { id: 8, name: "Skid Steer" },
-  { id: 9, name: "Screeners" },
-  { id: 10, name: "Telehandler" },
-  { id: 11, name: "Lifts" },
-  { id: 12, name: "Trailers" },
-  { id: 13, name: "Grader" },
-  { id: 14, name: "Attachments" },
-  { id: 15, name: "Landscape" },
-  { id: 16, name: "Concrete Equipment" },
-  { id: 17, name: "Misc" },
-  { id: 18, name: "Water Trucks" },
-  { id: 19, name: "Specialty Equipment" },
-];
+interface AddEquipmentFormProps {
+  categories: Category[];
+  locations: Location[];
+}
 
-export default function AddEquipmentForm() {
+export default function AddEquipmentForm({ categories, locations }: AddEquipmentFormProps) {
   const [glCode, setGlCode] = useState("");
   const [equipmentName, setEquipmentName] = useState("");
-  const [categoryId, setDivisionId] = useState<number | "">("");
+  const [categoryId, setCategoryId] = useState<number | "">("");
   const [year, setYear] = useState("");
   const [rateDaily, setRateDaily] = useState("");
   const [rateWeekly, setRateWeekly] = useState("");
   const [rateMonthly, setRateMonthly] = useState("");
   const [serialNumber, setSerialNumber] = useState("");
-  const [homeYard, setHomeYard] = useState("");
+  const [homeLocationId, setHomeLocationId] = useState<number | "">("");
   const [isCrossCharge, setIsCrossCharge] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
@@ -60,7 +41,7 @@ export default function AddEquipmentForm() {
         rate_weekly: rateWeekly || null,
         rate_monthly: rateMonthly || null,
         serial_number: serialNumber || null,
-        home_location_id: homeYard ? Number(homeYard) : null,
+        home_location_id: homeLocationId || null,
         is_cross_charge: isCrossCharge,
       }),
     });
@@ -71,16 +52,16 @@ export default function AddEquipmentForm() {
     if (!res.ok) {
       setError(data.error ?? "Something went wrong. Please try again.");
     } else {
-      setSuccess(`Added: ${glCode.toUpperCase()} — ${equipmentName} (status set to AVAILABLE)`);
+      setSuccess(`Added: ${glCode.toUpperCase()} — ${equipmentName}`);
       setGlCode("");
       setEquipmentName("");
-      setDivisionId("");
+      setCategoryId("");
       setYear("");
       setRateDaily("");
       setRateWeekly("");
       setRateMonthly("");
       setSerialNumber("");
-      setHomeYard("");
+      setHomeLocationId("");
       setIsCrossCharge(false);
     }
   }
@@ -153,17 +134,22 @@ export default function AddEquipmentForm() {
         </label>
         <select
           value={categoryId}
-          onChange={(e) => setDivisionId(Number(e.target.value) || "")}
+          onChange={(e) => setCategoryId(Number(e.target.value) || "")}
           required
           className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white"
         >
-          <option value="">— Select division —</option>
-          {DIVISIONS.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.id.toString().padStart(2, "0")} — {d.name}
+          <option value="">— Select category —</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
             </option>
           ))}
         </select>
+        {categories.length === 0 && (
+          <p className="text-xs text-amber-600 mt-1">
+            No categories configured yet — seed the categories table first.
+          </p>
+        )}
       </div>
 
       {/* Rates */}
@@ -206,17 +192,22 @@ export default function AddEquipmentForm() {
         </div>
       </div>
 
-      {/* Home Yard + Cross Charge */}
+      {/* Home Location + Cross Charge */}
       <div className="grid grid-cols-2 gap-4 items-end">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Home Yard</label>
-          <input
-            type="text"
-            value={homeYard}
-            onChange={(e) => setHomeYard(e.target.value)}
-            placeholder="e.g. Dallas"
-            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400"
-          />
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Home Location</label>
+          <select
+            value={homeLocationId}
+            onChange={(e) => setHomeLocationId(Number(e.target.value) || "")}
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white"
+          >
+            <option value="">— None —</option>
+            {locations.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="flex items-center gap-2 pb-2.5">
           <input

@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
-import type { FleetRow } from "@/lib/types";
+import type { FleetRow, Status } from "@/lib/types";
 import StatusBadge from "./status-badge";
 
 interface FleetTableProps {
   rows: FleetRow[];
   categoryName: string;
+  statuses: Status[];
 }
 
 function fmt(n: number | null): string {
@@ -24,8 +25,12 @@ function fmtDate(d: string | null): string {
   });
 }
 
-export default function FleetTable({ rows, categoryName }: FleetTableProps) {
+export default function FleetTable({ rows, categoryName, statuses }: FleetTableProps) {
   const [open, setOpen] = useState(true);
+  const statusByKey = useMemo(
+    () => new Map<string, Status>(statuses.map((s) => [s.key, s])),
+    [statuses]
+  );
 
   return (
     <div className="mb-8">
@@ -89,7 +94,7 @@ export default function FleetTable({ rows, categoryName }: FleetTableProps) {
                     {fmt(row.rate_monthly)}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <StatusBadge status={row.status} />
+                    <StatusBadge status={row.status} statusInfo={statusByKey.get(row.status) ?? null} />
                   </td>
                   <td className="px-4 py-3 text-gray-700 max-w-[140px] truncate">
                     {row.customer_name ?? "—"}

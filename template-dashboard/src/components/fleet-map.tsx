@@ -2,59 +2,44 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Map, { Marker, Popup, NavigationControl } from "react-map-gl/mapbox";
+import MapboxMap, { Marker, Popup, NavigationControl } from "react-map-gl/mapbox";
 // @ts-ignore - CSS import handled by webpack
 import "mapbox-gl/dist/mapbox-gl.css";
-import type { FleetRow, SamsaraDeviceWithEquipment } from "@/lib/types";
+import type { FleetRow, SamsaraDeviceWithEquipment, Status, Location } from "@/lib/types";
 import type { TelematicsAsset } from "@/lib/visionlink";
 import type { SamsaraAsset } from "@/lib/samsara";
 
 const SAMSARA_UNLINKED_GRAY = "#9ca3af";
+const UNKNOWN_STATUS_COLOR = "#6b7280";
 
-// Yard coordinates — geocoded from actual yard addresses
-const YARD_COORDS: Record<string, { lat: number; lng: number; name: string }> = {
-  "2500 NE 11th St, Bentonville, AR 72712": { lat: 36.386546, lng: -94.180629, name: "Arkansas" },
-  "100 Bodovsky Rd Tioga, TX 76271": { lat: 33.47083, lng: -96.86169, name: "Texas (Tioga)" },
-  "10315 FM 307 Midland, TX 79706": { lat: 32.025369, lng: -101.908339, name: "Midland, TX" },
-};
-
-// Status colors matching existing badge colors
-const STATUS_COLORS: Record<string, string> = {
-  "ON RENT": "#22c55e",
-  AVAILABLE: "#3b82f6",
-  DOWN: "#ef4444",
-  RESERVED: "#f59e0b",
-  "IN SERVICE": "#f97316",
-  "OFF RENT PENDING": "#6b7280",
-};
-
-// Position units: VisionLink GPS > manual geocoded > yard fallback
-// Normalize a string for fuzzy matching: lowercase, strip dashes, spaces, special chars, leading zeros
+// Position units: VisionLink GPS > manual geocoded > home-location fallback.
 function normalize(s: string): string {
   return s.toLowerCase().replace(/[-\s_.#]/g, "").replace(/^0+/, "");
 }
 
 function spreadUnits(
   units: FleetRow[],
-  telematics: TelematicsAsset[] | null
+  telematics: TelematicsAsset[] | null,
+  locationById: Map<number, Location>
 ): (FleetRow & { lat: number; lng: number; hasGps: boolean })[] {
   const yardCounts: Record<string, number> = {};
 
-  // Build lookup by multiple keys for VisionLink matching
   const telematicsMap: Record<string, TelematicsAsset> = {};
   if (telematics) {
     for (const asset of telematics) {
-      // Index by exact values (lowercased)
       if (asset.serialNumber) telematicsMap[asset.serialNumber.toLowerCase()] = asset;
       if (asset.equipmentId) telematicsMap[asset.equipmentId.toLowerCase()] = asset;
-      // Index by normalized values (stripped of dashes, spaces, etc.)
       if (asset.serialNumber) telematicsMap[normalize(asset.serialNumber)] = asset;
       if (asset.equipmentId) telematicsMap[normalize(asset.equipmentId)] = asset;
     }
   }
 
+  // Pick a default for units with no home location at all, so they still
+  // appear somewhere on the map instead of disappearing.
+  const defaultLoc = locationById.values().next().value ?? null;
+
   return units.map((unit) => {
-    // 1. Check VisionLink GPS — serial number first (most reliable), then GL code, then name
+    // 1. VisionLink GPS
     const sn = unit.serial_number ?? "";
     const vlMatch =
       (sn ? telematicsMap[sn.toLowerCase()] : undefined) ??
@@ -64,31 +49,35 @@ function spreadUnits(
       telematicsMap[unit.equipment_name.toLowerCase()] ??
       telematicsMap[normalize(unit.equipment_name)];
     if (vlMatch?.latitude && vlMatch?.longitude) {
-      // Validate coordinates are in reasonable range
       if (Math.abs(vlMatch.latitude) <= 90 && Math.abs(vlMatch.longitude) <= 180) {
         return { ...unit, lat: vlMatch.latitude, lng: vlMatch.longitude, hasGps: true };
       }
     }
 
-    // 2. Use manually entered / geocoded coordinates
+    // 2. Manually entered / geocoded coordinates
     if (unit.current_lat && unit.current_lng) {
       return { ...unit, lat: unit.current_lat, lng: unit.current_lng, hasGps: false };
     }
 
-    // 3. Fall back to yard coordinates — tight circle around the yard address
-    const yard = unit.home_location_name ?? "";
-    const defaultCoords = Object.values(YARD_COORDS)[0];
-    const coords = YARD_COORDS[yard] ?? defaultCoords;
-    const idx = yardCounts[yard] ?? 0;
-    yardCounts[yard] = idx + 1;
-
-    // Even spacing around a small circle (~50m radius)
-    const angle = (idx / Math.max(1, yardCounts[yard])) * 2 * Math.PI + idx * 0.4;
+    // 3. Fall back to home location coords — tight circle around the
+    //    yard so multiple units don't stack on the exact same pin.
+    const loc =
+      (unit.home_location_id != null ? locationById.get(unit.home_location_id) : undefined) ??
+      defaultLoc;
+    if (!loc || loc.latitude == null || loc.longitude == null) {
+      // No usable coords anywhere — drop on (0, 0) so the unit is still
+      // technically rendered. Better than throwing.
+      return { ...unit, lat: 0, lng: 0, hasGps: false };
+    }
+    const yardKey = String(unit.home_location_id ?? "");
+    const idx = yardCounts[yardKey] ?? 0;
+    yardCounts[yardKey] = idx + 1;
+    const angle = (idx / Math.max(1, yardCounts[yardKey])) * 2 * Math.PI + idx * 0.4;
     const radius = 0.0004; // ~50 meters
     return {
       ...unit,
-      lat: coords.lat + Math.sin(angle) * radius,
-      lng: coords.lng + Math.cos(angle) * radius,
+      lat: loc.latitude + Math.sin(angle) * radius,
+      lng: loc.longitude + Math.cos(angle) * radius,
       hasGps: false,
     };
   });
@@ -96,6 +85,8 @@ function spreadUnits(
 
 interface FleetMapProps {
   fleet: FleetRow[];
+  statuses: Status[];
+  locations: Location[];
   telematics?: TelematicsAsset[] | null;
   samsaraDevices?: SamsaraDeviceWithEquipment[];
   samsaraAssets?: SamsaraAsset[] | null;
@@ -109,6 +100,8 @@ type SamsaraMarker = SamsaraDeviceWithEquipment & {
 
 export default function FleetMap({
   fleet,
+  statuses,
+  locations,
   telematics,
   samsaraDevices = [],
   samsaraAssets = null,
@@ -122,6 +115,15 @@ export default function FleetMap({
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [yardFilter, setYardFilter] = useState<string>("all");
 
+  const statusByKey = useMemo(
+    () => new Map<string, Status>(statuses.map((s) => [s.key, s])),
+    [statuses]
+  );
+  const locationById = useMemo(
+    () => new Map<number, Location>(locations.map((l) => [l.id, l])),
+    [locations]
+  );
+
   const categories = useMemo(() => {
     const set = new Set(fleet.map((u) => u.category_name));
     return Array.from(set).sort();
@@ -131,9 +133,12 @@ export default function FleetMap({
     let filtered = fleet;
     if (statusFilter !== "all") filtered = filtered.filter((u) => u.status === statusFilter);
     if (categoryFilter !== "all") filtered = filtered.filter((u) => u.category_name === categoryFilter);
-    if (yardFilter !== "all") filtered = filtered.filter((u) => u.home_location_name === yardFilter);
-    return spreadUnits(filtered, telematics ?? null);
-  }, [fleet, telematics, statusFilter, categoryFilter, yardFilter]);
+    if (yardFilter !== "all") {
+      const id = parseInt(yardFilter, 10);
+      filtered = filtered.filter((u) => u.home_location_id === id);
+    }
+    return spreadUnits(filtered, telematics ?? null, locationById);
+  }, [fleet, telematics, statusFilter, categoryFilter, yardFilter, locationById]);
 
   const samsaraMarkers = useMemo<SamsaraMarker[]>(() => {
     if (!samsaraDevices || samsaraDevices.length === 0) return [];
@@ -191,6 +196,11 @@ export default function FleetMap({
     }
   }, [selectedSamsara, samsaraNoteDraft, router]);
 
+  const colorFor = (statusKey: string): string =>
+    statusByKey.get(statusKey)?.color ?? UNKNOWN_STATUS_COLOR;
+  const nameFor = (statusKey: string): string =>
+    statusByKey.get(statusKey)?.name ?? statusKey;
+
   return (
     <div className="flex gap-4 h-[calc(100vh-140px)]">
       {/* Filter sidebar */}
@@ -206,8 +216,8 @@ export default function FleetMap({
             className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
           >
             <option value="all">All Statuses</option>
-            {Object.keys(STATUS_COLORS).map((s) => (
-              <option key={s} value={s}>{s}</option>
+            {statuses.map((s) => (
+              <option key={s.key} value={s.key}>{s.name}</option>
             ))}
           </select>
         </div>
@@ -227,17 +237,17 @@ export default function FleetMap({
           </select>
         </div>
 
-        {/* Yard filter */}
+        {/* Location filter */}
         <div className="mb-4">
-          <label className="text-xs font-medium text-gray-500 uppercase mb-1 block">Yard</label>
+          <label className="text-xs font-medium text-gray-500 uppercase mb-1 block">Location</label>
           <select
             value={yardFilter}
             onChange={(e) => setYardFilter(e.target.value)}
             className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
           >
-            <option value="all">All Yards</option>
-            {Object.entries(YARD_COORDS).map(([id, y]) => (
-              <option key={id} value={id}>{y.name}</option>
+            <option value="all">All Locations</option>
+            {locations.map((l) => (
+              <option key={l.id} value={l.id}>{l.name}</option>
             ))}
           </select>
         </div>
@@ -246,10 +256,10 @@ export default function FleetMap({
         <div className="border-t border-gray-200 pt-3 mt-2">
           <label className="text-xs font-medium text-gray-500 uppercase mb-2 block">Legend</label>
           <div className="space-y-1.5">
-            {Object.entries(STATUS_COLORS).map(([status, color]) => (
-              <div key={status} className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                <span className="text-xs text-gray-600">{status}</span>
+            {statuses.map((s) => (
+              <div key={s.key} className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+                <span className="text-xs text-gray-600">{s.name}</span>
               </div>
             ))}
           </div>
@@ -281,7 +291,7 @@ export default function FleetMap({
 
       {/* Map */}
       <div className="flex-1 rounded-xl overflow-hidden shadow-sm border border-gray-200">
-        <Map
+        <MapboxMap
           initialViewState={{
             latitude: 33.5,
             longitude: -99.0,
@@ -306,7 +316,7 @@ export default function FleetMap({
             >
               <div
                 className="w-4 h-4 rounded-full border-2 border-white cursor-pointer shadow-md hover:scale-125 transition-transform"
-                style={{ backgroundColor: STATUS_COLORS[unit.status] ?? "#6b7280" }}
+                style={{ backgroundColor: colorFor(unit.status) }}
                 title={`${unit.gl_code} — ${unit.equipment_name}`}
               />
             </Marker>
@@ -327,7 +337,7 @@ export default function FleetMap({
                 className="w-4 h-4 border-2 border-white cursor-pointer shadow-md hover:scale-125 transition-transform"
                 style={{
                   backgroundColor: m.equipment
-                    ? STATUS_COLORS[m.equipment.status] ?? SAMSARA_UNLINKED_GRAY
+                    ? colorFor(m.equipment.status)
                     : SAMSARA_UNLINKED_GRAY,
                   borderRadius: 0,
                 }}
@@ -349,7 +359,7 @@ export default function FleetMap({
                 <div className="flex items-center gap-2 mb-1">
                   <span
                     className="w-2.5 h-2.5 rounded-full"
-                    style={{ backgroundColor: STATUS_COLORS[selected.status] ?? "#6b7280" }}
+                    style={{ backgroundColor: colorFor(selected.status) }}
                   />
                   <span className="font-mono text-xs font-bold text-gray-800">{selected.gl_code}</span>
                 </div>
@@ -358,7 +368,7 @@ export default function FleetMap({
                 <div className="mt-2 space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Status</span>
-                    <span className="font-medium">{selected.status}</span>
+                    <span className="font-medium">{nameFor(selected.status)}</span>
                   </div>
                   {selected.customer_name && (
                     <div className="flex justify-between">
@@ -379,7 +389,7 @@ export default function FleetMap({
                   ) : (
                     <div className="flex justify-between">
                       <span className="text-gray-500">Yard</span>
-                      <span className="font-medium">{YARD_COORDS[selected.home_location_name ?? ""]?.name ?? selected.home_location_name ?? "Unknown"}</span>
+                      <span className="font-medium">{selected.home_location_name ?? "Unknown"}</span>
                     </div>
                   )}
                 </div>
@@ -408,7 +418,7 @@ export default function FleetMap({
                     className="w-2.5 h-2.5"
                     style={{
                       backgroundColor: selectedSamsara.equipment
-                        ? STATUS_COLORS[selectedSamsara.equipment.status] ?? SAMSARA_UNLINKED_GRAY
+                        ? colorFor(selectedSamsara.equipment.status)
                         : SAMSARA_UNLINKED_GRAY,
                     }}
                   />
@@ -432,7 +442,7 @@ export default function FleetMap({
                     </p>
                     <div className="mt-1 flex justify-between text-xs">
                       <span className="text-gray-500">Status</span>
-                      <span className="font-medium">{selectedSamsara.equipment.status}</span>
+                      <span className="font-medium">{nameFor(selectedSamsara.equipment.status)}</span>
                     </div>
                     <a
                       href={`/fleet/${selectedSamsara.equipment.id}`}
@@ -473,7 +483,7 @@ export default function FleetMap({
               </div>
             </Popup>
           )}
-        </Map>
+        </MapboxMap>
       </div>
     </div>
   );

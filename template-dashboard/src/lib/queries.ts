@@ -65,7 +65,7 @@ export async function getStatuses(): Promise<Status[]> {
 
 // Build a key→Status map so lookups by status key are O(1).
 export function statusMapFromList(statuses: Status[]): Map<string, Status> {
-  return new Map(statuses.map((s) => [s.key, s]));
+  return new Map<string, Status>(statuses.map((s) => [s.key, s]));
 }
 
 // Return the behavior of a status key, or `undefined` if the key is not
