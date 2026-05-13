@@ -33,7 +33,8 @@ Move per-business values out of the VAPI assistant config into `business_config.
 `provisioning/provision-customer.ts` CLI that takes a `customer-manifest.yaml` and creates the Supabase project, runs the schema, seeds taxonomies, creates the Vercel project, sets env vars, creates the Railway service, and emits a runbook for manual steps. **Done when** provisioning a fake test customer takes under 60 min of operator time.
 
 - **4a (done):** Foundation — manifest extension (`provisioning:` block), state machinery (`provisioning/state/<slug>.json`), `.env` loader with operator-level defaults, ordered step registry, `provision-customer.ts` orchestrator with `--dry-run` / `--resume` / `--only=...` flags. Every step stubbed with a real `describe()` for dry-run; `execute()` throws `NotYetImplementedError`. Dry-run against any manifest prints the full 14-step plan.
-- **4b–4f (pending):** Fill in `execute()` for each step in turn — GitHub fork, Supabase, VAPI, Vercel, Railway, runbook generator.
+- **4b (done):** `github_fork` step + tests. `lib/clients/github.ts` is a minimal GitHub REST client (auth user, get repo, fork). Step is idempotent (reuses an existing fork named `trackhq-<slug>` if one already exists) and handles both personal-account and org targets. Test infrastructure (`tests/` with node:test runner, fetch mock, context builders) added.
+- **4c–4f (pending):** Supabase, VAPI, Vercel, Railway, runbook generator.
 
 ## Phase 5 — Operator control panel
 
