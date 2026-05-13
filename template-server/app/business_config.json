@@ -1,0 +1,55 @@
+{
+  "name": "Crossmar Rentals",
+  "address": "123 Main Street, Chicago, IL 60601",
+  "phone": "(469) 402-0936",
+  "email": "info@crossmarrentals.com",
+  "website": "www.crossmarrentals.com",
+  "about": "Crossmar Rentals is a heavy equipment rental company serving contractors, construction crews, and industrial clients. We offer a wide fleet of well-maintained equipment with flexible rental terms, and provide on-site mechanic support when you need it.",
+  "booking_hours": {
+    "monday":    { "open": "09:00", "close": "17:00" },
+    "tuesday":   { "open": "09:00", "close": "17:00" },
+    "wednesday": { "open": "09:00", "close": "17:00" },
+    "thursday":  { "open": "09:00", "close": "17:00" },
+    "friday":    { "open": "09:00", "close": "17:00" },
+    "saturday":  { "open": "09:00", "close": "13:00" },
+    "sunday":    null
+  },
+  "services": [
+    { "name": "Equipment Rental",      "description": "Short and long-term rental of excavators, bulldozers, backhoes, skid steers, forklifts, and more.", "price": "Call for quote" },
+    { "name": "Equipment Availability","description": "Check current inventory and availability of specific machines.", "price": "Free" },
+    { "name": "On-Site Mechanic Support","description": "Dispatch a mechanic to your job site for equipment breakdowns and repairs.", "price": "Call for rates" },
+    { "name": "Quote Request",         "description": "Get a custom rental or service quote based on your project needs.", "price": "Free" }
+  ],
+  "faqs": {
+    "hours": "Our office is open Monday through Friday 9 AM to 5 PM, and Saturday 9 AM to 1 PM. We are closed on Sundays. For equipment emergencies, we have an on-call mechanic available after hours.",
+    "location": "We are located at 123 Main Street, Chicago, IL 60601.",
+    "parking": "Free parking is available in our lot on the south side of the building.",
+    "cancellation": "Rentals and appointments can be cancelled or rescheduled with at least 2 hours notice at no charge. Late cancellations may be subject to a fee.",
+    "emergency": "For equipment breakdowns after hours, stay on the line and our after-hours system will connect you with the on-call mechanic.",
+    "payment": "We accept cash, check, and all major credit cards. Invoicing is available for established accounts.",
+    "new_clients": "New clients are always welcome. We just need some basic information to get you set up. You can call us or book an appointment online.",
+    "insurance": "We are fully insured and bonded. Certificate of insurance is available upon request.",
+    "contact": "You can reach us by phone at (469) 402-0936, by email at info@crossmarrentals.com, or through our website at www.crossmarrentals.com.",
+    "pricing": "Rates depend on the equipment type and rental period and change frequently. Rather than give you an outdated number, I can take your name, number, and what you need — and our rental team will call you back with current pricing.",
+    "services": "We offer equipment rental, availability checks, on-site mechanic support, and custom quotes. Ask us about any specific machine or service.",
+    "mechanic": "We can dispatch a mechanic to your job site for breakdowns and repairs. Can you tell me what machine broke down, what the issue is, and your job site location? I'll alert our mechanic team right away.",
+    "availability": "Availability changes daily based on current rentals, so I don't want to give you inaccurate information. If you let me take your name, number, and what equipment you need, our rental team will call you back with current stock and pricing.",
+    "quote": "I'd be happy to get you a quote. Since rates and availability change frequently, let me take your name, number, and what equipment you're looking for — our rental team will call you back with current pricing and availability."
+  },
+  "keyword_map": {
+    "hours":        ["hours", "open", "close", "closing", "schedule", "time", "when"],
+    "location":     ["location", "address", "where", "directions", "find you", "located"],
+    "parking":      ["parking", "park", "lot"],
+    "cancellation": ["cancel", "cancellation", "reschedule", "rebook", "change"],
+    "emergency":    ["emergency", "breakdown", "broke down", "after hours", "24/7", "on call"],
+    "payment":      ["pay", "payment", "cost", "credit card", "cash", "invoice", "billing"],
+    "new_clients":  ["new client", "new customer", "first time", "sign up", "register"],
+    "insurance":    ["insurance", "insured", "bonded", "liability", "certificate"],
+    "contact":      ["contact", "email", "phone", "reach", "call", "website"],
+    "pricing":      ["price", "pricing", "rate", "rates", "quote", "how much", "cost"],
+    "services":     ["services", "service", "what do you", "what can you", "offerings", "available"],
+    "mechanic":     ["mechanic", "repair", "fix", "broken", "track", "won't start", "not working", "maintenance"],
+    "availability": ["availability", "available", "in stock", "do you have", "rent", "rental"],
+    "quote":        ["quote", "estimate", "pricing", "how much", "rate"]
+  }
+}

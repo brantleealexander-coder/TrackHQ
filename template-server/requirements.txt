@@ -1,0 +1,24 @@
+# Web framework
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+
+# Config / env
+pydantic-settings>=2.2.0
+python-dotenv>=1.0.0
+
+# Database — pin below 2.5 (2.5+ needs C++ build tools on Windows)
+supabase>=2.4.0,<2.5.0
+
+# Google Calendar (OAuth 2.0)
+google-api-python-client>=2.126.0
+google-auth>=2.29.0
+google-auth-oauthlib>=1.2.0
+
+# SMS
+twilio>=9.0.0
+
+# httpx — version controlled by supabase 2.4.x constraint (requires <0.28)
+# Telegram notifications use httpx indirectly via the requests already in env
+
+# Timezone data (required on Windows — no built-in tz database)
+tzdata>=2024.1
