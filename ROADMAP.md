@@ -18,9 +18,15 @@ Replace the seeded 19 categories and 6-value status enum with customer-defined `
 - **2b (done):** UI now reads statuses / categories / locations from DB. `StatusBadge` derives color and name from a `statusInfo` prop; `fleet-map.tsx` builds its color map and yard pins from `statuses[]` + `locations[]` props; `status-form.tsx` populates the dropdown from `statuses[]` and switches `showCustomer` / `showRentalFields` / `showRentalEnd` on `behavior`. `add-equipment-form.tsx` takes `categories[]` and `locations[]` props and gained a location dropdown. `computeFleetSummary` and `findOverdueRentals` aggregate by behavior.
 - **2c (done):** `provisioning/seed-tenant.ts` CLI reads a YAML manifest and upserts categories / statuses / locations into a tenant's Supabase project. Supports `--dry-run` for verification. Crossmar's real taxonomy lives at `examples/crossmar/customer-manifest.yaml` for use by the eventual migration project. The pre-2a Crossmar seed scripts moved to `examples/crossmar/scripts/` with a README explaining they need updating to run against the post-2a schema. Phase 2's full done-criterion is now hit: a second deployment can use entirely different categories / statuses / locations without touching application code.
 
-## Phase 3 — Templatize the receptionist
+## Phase 3 — Templatize the receptionist  (done)
 
-Move per-business values out of the VAPI assistant config into `business_config.json` placeholders; render on server startup. Make Google Calendar optional. **Done when** the same template renders as either Crossmar's Emma or a different business's persona by editing one JSON file.
+Move per-business values out of the VAPI assistant config into `business_config.json` placeholders; render on demand. Make Google Calendar optional. **Done when** the same template renders as either Crossmar's Emma or a different business's persona by editing one JSON file.
+
+- `template-server/vapi_assistant_config.example.json` is the committed template; `${field}` placeholders are filled from `business_config.vapi.*` plus `VAPI_WEBHOOK_URL` from env. VAPI's own runtime `{{ }}` tokens are preserved.
+- `template-server/app/business_config.example.json` is the committed reference; per-deploy `business_config.json` is gitignored.
+- `template-server/app/render_vapi.py` performs the substitution; `patch_vapi.py` wraps it with a CLI that reads `VAPI_API_KEY` / `VAPI_ASSISTANT_ID` from env and supports `--dry-run`.
+- Google Calendar tools (`checkAvailability`, `bookAppointment`, `rescheduleAppointment`, `cancelAppointment`) return a polite "appointments not available" message when `features.google_calendar` is false in business_config.
+- Verified by rendering the same template against `examples/crossmar/business_config.json` and `template-server/app/business_config.example.json` — produces "Emma — Crossmar Rentals" vs "Alex — Acme Excavators" correctly.
 
 ## Phase 4 — Provisioning automation
 

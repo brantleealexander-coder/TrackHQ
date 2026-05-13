@@ -28,7 +28,17 @@ if _CONFIG_PATH.exists():
     except Exception as e:
         logger.warning("[WARN] webhook: could not load business_config.json: %s", str(e))
 else:
-    logger.info("[OK] webhook: business_config.json not found yet (Phase 5)")
+    logger.info("[OK] webhook: business_config.json not found — copy business_config.example.json and fill it in for this tenant")
+
+
+def _feature_enabled(name: str, default: bool = False) -> bool:
+    return bool(_business_config.get("features", {}).get(name, default))
+
+
+_CALENDAR_DISABLED_MESSAGE = (
+    "I'm sorry, this business doesn't take appointment bookings by phone. "
+    "Let me take a message and have the team follow up."
+)
 
 
 # ---------------------------------------------------------------------------
@@ -241,6 +251,8 @@ async def tool_lookup_caller(params: dict, message: dict) -> str:
 
 
 async def tool_check_availability(params: dict, message: dict) -> str:
+    if not _feature_enabled("google_calendar"):
+        return _CALENDAR_DISABLED_MESSAGE
     from app.services.calendar_service import check_availability
     date_str = params.get("date", "")
     if not date_str:
@@ -249,6 +261,8 @@ async def tool_check_availability(params: dict, message: dict) -> str:
 
 
 async def tool_book_appointment(params: dict, message: dict) -> str:
+    if not _feature_enabled("google_calendar"):
+        return _CALENDAR_DISABLED_MESSAGE
     from app.services.calendar_service import book_appointment
     from app.services.sms_service import send_booking_confirmation
 
@@ -279,6 +293,8 @@ async def tool_book_appointment(params: dict, message: dict) -> str:
 
 
 async def tool_reschedule_appointment(params: dict, message: dict) -> str:
+    if not _feature_enabled("google_calendar"):
+        return _CALENDAR_DISABLED_MESSAGE
     from app.services.calendar_service import reschedule_appointment
     from app.services.sms_service import send_reschedule_confirmation
 
@@ -314,6 +330,8 @@ async def tool_reschedule_appointment(params: dict, message: dict) -> str:
 
 
 async def tool_cancel_appointment(params: dict, message: dict) -> str:
+    if not _feature_enabled("google_calendar"):
+        return _CALENDAR_DISABLED_MESSAGE
     from app.services.calendar_service import cancel_appointment
     from app.services.sms_service import send_cancellation_confirmation
 

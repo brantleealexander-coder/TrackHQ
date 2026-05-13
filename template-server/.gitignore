@@ -1,0 +1,12 @@
+# Per-tenant runtime config — committed only as business_config.example.json.
+# Operators copy the example to business_config.json and fill it in.
+app/business_config.json
+
+# Google Calendar OAuth files (already in top-level .gitignore but be explicit
+# here so they show up clearly in template-server context).
+credentials.json
+token.json
+
+# Env files
+.env
+.env.local

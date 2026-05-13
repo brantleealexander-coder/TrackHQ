@@ -1,0 +1,181 @@
+{
+  "_comment": "VAPI assistant template. patch_vapi.py renders single-brace dollar placeholders from business_config.json (vapi section) plus VAPI_WEBHOOK_URL from env, then PATCHes the assistant identified by VAPI_ASSISTANT_ID. Double-brace tokens are VAPI runtime syntax — leave them alone.",
+
+  "name": "${assistant_display_name}",
+  "backgroundSound": "off",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "temperature": 0.7,
+    "systemPrompt": "${system_prompt}"
+  },
+  "voice": {
+    "provider": "${voice_provider}",
+    "voiceId": "${voice_id}"
+  },
+  "serverUrl": "${webhook_url}",
+  "firstMessage": "${first_message}",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "lookupCaller",
+        "description": "Look up a caller's history by their phone number. Call this at the start of every conversation.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "callerPhone": {
+              "type": "string",
+              "description": "The caller's phone number (E.164 format preferred, e.g. +13125550100)"
+            }
+          },
+          "required": []
+        }
+      },
+      "server": {
+        "url": "${webhook_url}"
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "checkAvailability",
+        "description": "Check available appointment slots for a given date. Always call this before bookAppointment.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "The date to check. Can be 'today', 'tomorrow', a day name like 'Monday', or ISO format like '2025-06-15'."
+            }
+          },
+          "required": ["date"]
+        }
+      },
+      "server": {
+        "url": "${webhook_url}"
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "bookAppointment",
+        "description": "Book an appointment for the caller on a specific date and time.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "callerName": { "type": "string", "description": "The caller's full name" },
+            "callerPhone": { "type": "string", "description": "The caller's phone number" },
+            "date": { "type": "string", "description": "The appointment date (same formats as checkAvailability)" },
+            "time": { "type": "string", "description": "The appointment time, e.g. '2:00 PM' or '14:00'" }
+          },
+          "required": ["date", "time"]
+        }
+      },
+      "server": { "url": "${webhook_url}" }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "rescheduleAppointment",
+        "description": "Reschedule an existing appointment to a new date and time.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "callerPhone": { "type": "string", "description": "The caller's phone number (used to find their existing appointment)" },
+            "newDate": { "type": "string", "description": "The new appointment date" },
+            "newTime": { "type": "string", "description": "The new appointment time" },
+            "originalDate": { "type": "string", "description": "Optional: the original date of the appointment to reschedule, if the caller has multiple" }
+          },
+          "required": ["newDate", "newTime"]
+        }
+      },
+      "server": { "url": "${webhook_url}" }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "cancelAppointment",
+        "description": "Cancel an existing appointment for the caller.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "callerPhone": { "type": "string", "description": "The caller's phone number" },
+            "date": { "type": "string", "description": "Optional: the date of the specific appointment to cancel, if the caller has multiple" }
+          },
+          "required": []
+        }
+      },
+      "server": { "url": "${webhook_url}" }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "getBusinessInfo",
+        "description": "Get information about the business — hours, services, location, policies, etc.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "topic": {
+              "type": "string",
+              "description": "The topic the caller is asking about, e.g. 'hours', 'location', 'services', 'cancellation', 'payment'"
+            }
+          },
+          "required": ["topic"]
+        }
+      },
+      "server": { "url": "${webhook_url}" }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "takeMessage",
+        "description": "Take a message from the caller to pass on to the team.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "callerName": { "type": "string", "description": "The caller's name" },
+            "callerPhone": { "type": "string", "description": "The caller's phone number" },
+            "message": { "type": "string", "description": "The message to pass on" },
+            "urgency": { "type": "string", "enum": ["normal", "urgent", "low"], "description": "How urgent the message is. Default is 'normal'." }
+          },
+          "required": ["message"]
+        }
+      },
+      "server": { "url": "${webhook_url}" }
+    },
+    {
+      "type": "transferCall",
+      "destinations": [
+        {
+          "type": "phoneNumber",
+          "number": "${transfer_phone}",
+          "message": "${transfer_message}"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "dispatchMechanic",
+        "description": "Dispatch a mechanic to a job site when a caller reports a breakdown or equipment emergency. Collect equipment type, issue description, and job site location before calling this tool.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "callerName": { "type": "string", "description": "The caller's full name" },
+            "callerPhone": { "type": "string", "description": "The caller's phone number" },
+            "equipmentType": { "type": "string", "description": "What type or model of equipment broke down" },
+            "issueDescription": { "type": "string", "description": "Plain-English description of what is wrong" },
+            "jobSiteLocation": { "type": "string", "description": "Address or description of the job site" },
+            "urgency": { "type": "string", "enum": ["urgent", "normal"], "description": "How urgent the breakdown is. Default to urgent." }
+          },
+          "required": ["equipmentType", "issueDescription", "jobSiteLocation"]
+        }
+      },
+      "server": { "url": "${webhook_url}" }
+    }
+  ],
+  "analysisPlan": {
+    "summaryPrompt": "${analysis_summary_prompt}"
+  }
+}

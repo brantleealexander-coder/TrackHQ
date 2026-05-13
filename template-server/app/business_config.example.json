@@ -1,0 +1,59 @@
+{
+  "_comment": "Copy this file to business_config.json and fill it in for your tenant. The runtime file (business_config.json) is gitignored.",
+
+  "name": "Acme Excavators",
+  "address": "1234 Main Street, Dallas, TX 75201",
+  "phone": "(555) 123-4567",
+  "email": "info@acmeexcavators.example.com",
+  "website": "www.acmeexcavators.example.com",
+  "about": "Acme Excavators is a fleet rental company serving contractors and construction crews. Replace this paragraph with one to two sentences about your business.",
+
+  "booking_hours": {
+    "monday":    { "open": "09:00", "close": "17:00" },
+    "tuesday":   { "open": "09:00", "close": "17:00" },
+    "wednesday": { "open": "09:00", "close": "17:00" },
+    "thursday":  { "open": "09:00", "close": "17:00" },
+    "friday":    { "open": "09:00", "close": "17:00" },
+    "saturday":  null,
+    "sunday":    null
+  },
+
+  "features": {
+    "google_calendar": false,
+    "telegram_alerts": false,
+    "twilio_sms":      false
+  },
+
+  "services": [
+    { "name": "Service Name", "description": "Short description of the service.", "price": "Call for quote" }
+  ],
+
+  "faqs": {
+    "hours":         "Our office is open Monday through Friday 9 AM to 5 PM.",
+    "location":      "We are located at 1234 Main Street, Dallas, TX 75201.",
+    "cancellation":  "Appointments can be cancelled or rescheduled with at least 2 hours notice.",
+    "payment":       "We accept cash, check, and major credit cards.",
+    "contact":       "Reach us by phone, email, or our website."
+  },
+
+  "keyword_map": {
+    "hours":        ["hours", "open", "close", "schedule", "when"],
+    "location":     ["location", "address", "where", "directions"],
+    "cancellation": ["cancel", "reschedule", "rebook"],
+    "payment":      ["pay", "payment", "cost", "credit card"],
+    "contact":      ["contact", "email", "phone", "reach"]
+  },
+
+  "vapi": {
+    "receptionist_name": "Alex",
+    "assistant_display_name": "Alex — Acme Excavators",
+    "voice_provider": "11labs",
+    "voice_id": "REPLACE_WITH_VOICE_ID_FROM_VAPI",
+    "transfer_phone": "+15551234567",
+    "transfer_message": "One moment, I'll connect you with the team.",
+    "timezone": "America/Chicago",
+    "first_message": "Thank you for calling Acme Excavators, how can I help you today?",
+    "system_prompt": "You are Alex, the friendly AI receptionist for Acme Excavators.\n\nToday's date and time: {{ \"now\" | date: \"%B %d, %Y, %I:%M %p\", \"America/Chicago\" }}\n\nYour job is to help callers with appointment booking and answering common questions about the business.\n\nRules:\n1. Be warm, concise, and professional.\n2. Use getBusinessInfo for any business question — never make up information.\n3. Use checkAvailability before bookAppointment.\n4. If you cannot help, use takeMessage (after hours) or transferCall (during business hours).\n5. Never mention that you are an AI unless directly asked.",
+    "analysis_summary_prompt": "Summarize this call in one sentence. Include the caller's name if mentioned, what they called about, and what was resolved or left pending."
+  }
+}
