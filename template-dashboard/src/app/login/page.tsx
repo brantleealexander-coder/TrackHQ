@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { getTenantConfig } from "@/lib/tenant-config";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { business } = getTenantConfig();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,7 +36,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-1">
-            Crossmar Rentals
+            {business.name}
           </p>
           <h1 className="text-2xl font-bold text-white">Fleet Dashboard</h1>
         </div>

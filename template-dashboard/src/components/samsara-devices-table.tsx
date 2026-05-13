@@ -82,7 +82,7 @@ export default function SamsaraDevicesTable({ devices, equipmentOptions }: Props
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white text-sm font-medium px-4 py-2 rounded-md"
+          className="bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 text-white text-sm font-medium px-4 py-2 rounded-md"
         >
           {syncing ? "Syncing..." : "Sync from Samsara"}
         </button>
@@ -148,7 +148,7 @@ export default function SamsaraDevicesTable({ devices, equipmentOptions }: Props
                             });
                           }}
                           disabled={savingId === d.id}
-                          className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-2 py-0.5 rounded"
+                          className="text-xs bg-brand-500 hover:bg-brand-600 text-white px-2 py-0.5 rounded"
                         >
                           Save
                         </button>
@@ -225,7 +225,7 @@ export default function SamsaraDevicesTable({ devices, equipmentOptions }: Props
                             });
                           }}
                           disabled={savingId === d.id}
-                          className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-2 py-0.5 rounded"
+                          className="text-xs bg-brand-500 hover:bg-brand-600 text-white px-2 py-0.5 rounded"
                         >
                           Save
                         </button>

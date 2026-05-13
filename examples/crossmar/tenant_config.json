@@ -1,0 +1,14 @@
+{
+  "business": {
+    "name": "Crossmar Rentals",
+    "logo_url": "https://www.crossmarequip.com/image/site_logo/crossmar_final1.jpg",
+    "brand_color": "#f97316",
+    "site_title": "Fleet Dashboard — Crossmar Rentals"
+  },
+  "features": {
+    "visionlink": true,
+    "samsara": true,
+    "quickbooks": true,
+    "chatbot": true
+  }
+}

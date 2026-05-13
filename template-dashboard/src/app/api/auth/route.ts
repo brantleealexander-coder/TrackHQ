@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createHmac } from "crypto";
 
-const COOKIE_NAME = "crossmar_auth";
+const COOKIE_NAME = "tenant_auth";
 
 function makeToken(secret: string): string {
   return createHmac("sha256", secret).update("authenticated").digest("hex");

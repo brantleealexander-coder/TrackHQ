@@ -385,7 +385,7 @@ export default function FleetMap({
                 </div>
                 <a
                   href={`/fleet/${selected.id}`}
-                  className="block mt-2 text-xs text-center text-orange-600 hover:text-orange-800 font-medium"
+                  className="block mt-2 text-xs text-center text-brand-600 hover:text-brand-800 font-medium"
                 >
                   View Details &rarr;
                 </a>
@@ -436,7 +436,7 @@ export default function FleetMap({
                     </div>
                     <a
                       href={`/fleet/${selectedSamsara.equipment.id}`}
-                      className="block mt-1 text-xs text-orange-600 hover:text-orange-800 font-medium"
+                      className="block mt-1 text-xs text-brand-600 hover:text-brand-800 font-medium"
                     >
                       View equipment &rarr;
                     </a>
@@ -458,7 +458,7 @@ export default function FleetMap({
                     <button
                       onClick={saveSamsaraNote}
                       disabled={savingNote || (samsaraNoteDraft === (selectedSamsara.notes ?? ""))}
-                      className="text-xs bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white px-2 py-0.5 rounded"
+                      className="text-xs bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 text-white px-2 py-0.5 rounded"
                     >
                       {savingNote ? "Saving..." : "Save"}
                     </button>

@@ -266,7 +266,7 @@ export default function StatusForm({ equipment }: StatusFormProps) {
       <button
         type="submit"
         disabled={loading || !selectedId}
-        className="w-full py-2.5 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-medium transition-colors"
+        className="w-full py-2.5 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-medium transition-colors"
       >
         {loading ? "Saving…" : "Save Status Update"}
       </button>

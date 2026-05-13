@@ -100,7 +100,7 @@ export default function MaintenanceForm({ equipment }: MaintenanceFormProps) {
           value={selectedId}
           onChange={(e) => setSelectedId(Number(e.target.value) || "")}
           required
-          className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+          className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white"
         >
           <option value="">— Select equipment —</option>
           {[...byDivision.entries()].sort().map(([divName, items]) => (
@@ -126,7 +126,7 @@ export default function MaintenanceForm({ equipment }: MaintenanceFormProps) {
             value={date}
             onChange={(e) => setDate(e.target.value)}
             required
-            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
         </div>
         <div>
@@ -137,7 +137,7 @@ export default function MaintenanceForm({ equipment }: MaintenanceFormProps) {
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             required
-            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white"
           >
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>{c}</option>
@@ -159,7 +159,7 @@ export default function MaintenanceForm({ equipment }: MaintenanceFormProps) {
           min={0}
           step="0.01"
           placeholder="0.00"
-          className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
+          className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400"
         />
       </div>
 
@@ -174,7 +174,7 @@ export default function MaintenanceForm({ equipment }: MaintenanceFormProps) {
           onChange={(e) => setDescription(e.target.value)}
           required
           placeholder="e.g. Oil change and filter replacement"
-          className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
+          className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400"
         />
       </div>
 
@@ -189,7 +189,7 @@ export default function MaintenanceForm({ equipment }: MaintenanceFormProps) {
             value={vendor}
             onChange={(e) => setVendor(e.target.value)}
             placeholder="e.g. Joe's Diesel Repair"
-            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
         </div>
         <div>
@@ -201,7 +201,7 @@ export default function MaintenanceForm({ equipment }: MaintenanceFormProps) {
             value={invoiceNumber}
             onChange={(e) => setInvoiceNumber(e.target.value)}
             placeholder="e.g. INV-2024-0042"
-            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
         </div>
       </div>
@@ -220,7 +220,7 @@ export default function MaintenanceForm({ equipment }: MaintenanceFormProps) {
       <button
         type="submit"
         disabled={loading || !selectedId}
-        className="w-full py-2.5 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-medium transition-colors"
+        className="w-full py-2.5 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-medium transition-colors"
       >
         {loading ? "Saving…" : "Log Maintenance"}
       </button>

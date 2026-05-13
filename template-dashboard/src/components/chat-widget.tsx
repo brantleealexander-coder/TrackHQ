@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "ai/react";
+import { getTenantConfig } from "@/lib/tenant-config";
 
 export default function ChatWidget() {
+  const { business } = getTenantConfig();
   const [open, setOpen] = useState(false);
   const [faultCount, setFaultCount] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -39,7 +41,7 @@ export default function ChatWidget() {
           <div className="flex items-center justify-between px-4 py-3 bg-zinc-950 text-white">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-green-400" />
-              <span className="text-sm font-semibold">CrossMar Assistant</span>
+              <span className="text-sm font-semibold">{business.name} Assistant</span>
             </div>
             <button
               onClick={() => setOpen(false)}
@@ -76,7 +78,7 @@ export default function ChatWidget() {
                       onClick={() => {
                         handleInputChange({ target: { value: suggestion } } as never);
                       }}
-                      className="w-full text-left px-3 py-2 rounded-lg bg-white border border-gray-200 text-xs text-gray-600 hover:border-orange-300 hover:text-orange-700 transition-colors"
+                      className="w-full text-left px-3 py-2 rounded-lg bg-white border border-gray-200 text-xs text-gray-600 hover:border-brand-300 hover:text-brand-700 transition-colors"
                     >
                       {suggestion}
                     </button>
@@ -93,7 +95,7 @@ export default function ChatWidget() {
                 <div
                   className={`max-w-[85%] px-3 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words ${
                     m.role === "user"
-                      ? "bg-orange-500 text-white rounded-br-sm"
+                      ? "bg-brand-500 text-white rounded-br-sm"
                       : "bg-white text-gray-800 shadow-sm border border-gray-100 rounded-bl-sm"
                   }`}
                 >
@@ -124,12 +126,12 @@ export default function ChatWidget() {
               onChange={handleInputChange}
               placeholder="Ask about your fleet…"
               disabled={isLoading}
-              className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:opacity-50"
+              className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={isLoading || !input.trim()}
-              className="px-3 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+              className="px-3 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white text-sm font-medium transition-colors"
             >
               Send
             </button>
@@ -140,7 +142,7 @@ export default function ChatWidget() {
       {/* Floating button */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-6 right-6 z-50 w-13 h-13 rounded-full bg-orange-500 hover:bg-orange-600 text-white shadow-lg flex items-center justify-center transition-colors"
+        className="fixed bottom-6 right-6 z-50 w-13 h-13 rounded-full bg-brand-500 hover:bg-brand-600 text-white shadow-lg flex items-center justify-center transition-colors"
         aria-label="Open fleet assistant"
         style={{ width: 52, height: 52 }}
       >

@@ -3,14 +3,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { getTenantConfig } from "@/lib/tenant-config";
 
-const links = [
+const allLinks: { href: string; label: string; feature?: "samsara" | "visionlink" | "quickbooks" }[] = [
   { href: "/fleet", label: "Fleet Status" },
   { href: "/financials", label: "Financials" },
-  { href: "/accounting", label: "Accounting" },
+  { href: "/accounting", label: "Accounting", feature: "quickbooks" },
   { href: "/map", label: "Fleet Map" },
-  { href: "/telematics", label: "Telematics" },
-  { href: "/samsara", label: "Samsara Devices" },
+  { href: "/telematics", label: "Telematics", feature: "visionlink" },
+  { href: "/samsara", label: "Samsara Devices", feature: "samsara" },
   { href: "/maintenance", label: "Log Maintenance" },
   { href: "/admin", label: "Update Status" },
 ];
@@ -18,6 +19,9 @@ const links = [
 export default function Nav() {
   const pathname = usePathname();
   const router = useRouter();
+  const { business, features } = getTenantConfig();
+
+  const links = allLinks.filter((l) => !l.feature || features[l.feature]);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -28,14 +32,18 @@ export default function Nav() {
   return (
     <aside className="w-60 shrink-0 flex flex-col bg-zinc-950 text-white min-h-screen">
       <div className="px-5 py-5 border-b border-zinc-800">
-        <Image
-          src="https://www.crossmarequip.com/image/site_logo/crossmar_final1.jpg"
-          alt="CrossMar Equipment Rental"
-          width={160}
-          height={60}
-          className="rounded"
-          unoptimized
-        />
+        {business.logo_url ? (
+          <Image
+            src={business.logo_url}
+            alt={business.name}
+            width={160}
+            height={60}
+            className="rounded"
+            unoptimized
+          />
+        ) : (
+          <p className="text-lg font-bold text-white">{business.name}</p>
+        )}
         <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mt-3">
           Fleet Dashboard
         </p>
@@ -50,7 +58,7 @@ export default function Nav() {
               href={link.href}
               className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 active
-                  ? "bg-orange-500 text-white"
+                  ? "bg-brand-500 text-white"
                   : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
               }`}
             >

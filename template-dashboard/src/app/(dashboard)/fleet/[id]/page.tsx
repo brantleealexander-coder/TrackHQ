@@ -52,7 +52,7 @@ export default async function UnitDetailPage({
       {/* Back link */}
       <Link
         href="/fleet"
-        className="inline-flex items-center gap-1 text-sm text-orange-600 hover:text-orange-800 mb-6"
+        className="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-800 mb-6"
       >
         ← Back to Fleet
       </Link>

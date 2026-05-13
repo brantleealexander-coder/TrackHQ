@@ -65,7 +65,7 @@ export default function FleetTable({ rows, divisionName }: FleetTableProps) {
                   <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">
                     <Link
                       href={`/fleet/${row.id}`}
-                      className="text-orange-600 hover:text-orange-800 hover:underline"
+                      className="text-brand-600 hover:text-brand-800 hover:underline"
                     >
                       {row.gl_code}
                     </Link>

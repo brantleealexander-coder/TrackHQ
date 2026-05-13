@@ -96,7 +96,7 @@ export default function AddEquipmentForm() {
             onChange={(e) => setGlCode(e.target.value)}
             required
             placeholder="e.g. 01-0175"
-            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400 uppercase"
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400 uppercase"
           />
         </div>
         <div>
@@ -110,7 +110,7 @@ export default function AddEquipmentForm() {
             placeholder="e.g. 2022"
             min={1980}
             max={2100}
-            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
         </div>
       </div>
@@ -125,7 +125,7 @@ export default function AddEquipmentForm() {
           onChange={(e) => setEquipmentName(e.target.value)}
           required
           placeholder="e.g. Komatsu D65PX Dozer"
-          className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
+          className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400"
         />
       </div>
 
@@ -139,7 +139,7 @@ export default function AddEquipmentForm() {
           value={serialNumber}
           onChange={(e) => setSerialNumber(e.target.value)}
           placeholder="e.g. ZJB00162"
-          className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400 uppercase"
+          className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400 uppercase"
         />
       </div>
 
@@ -152,7 +152,7 @@ export default function AddEquipmentForm() {
           value={divisionId}
           onChange={(e) => setDivisionId(Number(e.target.value) || "")}
           required
-          className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+          className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white"
         >
           <option value="">— Select division —</option>
           {DIVISIONS.map((d) => (
@@ -174,7 +174,7 @@ export default function AddEquipmentForm() {
             min={0}
             step="0.01"
             placeholder="0.00"
-            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
         </div>
         <div>
@@ -186,7 +186,7 @@ export default function AddEquipmentForm() {
             min={0}
             step="0.01"
             placeholder="0.00"
-            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
         </div>
         <div>
@@ -198,7 +198,7 @@ export default function AddEquipmentForm() {
             min={0}
             step="0.01"
             placeholder="0.00"
-            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
         </div>
       </div>
@@ -212,7 +212,7 @@ export default function AddEquipmentForm() {
             value={homeYard}
             onChange={(e) => setHomeYard(e.target.value)}
             placeholder="e.g. Dallas"
-            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
         </div>
         <div className="flex items-center gap-2 pb-2.5">
@@ -221,7 +221,7 @@ export default function AddEquipmentForm() {
             type="checkbox"
             checked={isCrossCharge}
             onChange={(e) => setIsCrossCharge(e.target.checked)}
-            className="w-4 h-4 accent-orange-500"
+            className="w-4 h-4 accent-brand-500"
           />
           <label htmlFor="cross-charge" className="text-sm font-medium text-gray-700">
             Cross Charge Unit
@@ -244,7 +244,7 @@ export default function AddEquipmentForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-2.5 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-medium transition-colors"
+        className="w-full py-2.5 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-medium transition-colors"
       >
         {loading ? "Adding…" : "Add Equipment"}
       </button>
