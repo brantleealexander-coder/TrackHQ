@@ -1,0 +1,19 @@
+{
+  "name": "trackhq-provisioning",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Operator-only scripts for spinning up TrackHQ tenants.",
+  "scripts": {
+    "seed-tenant": "tsx seed-tenant.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.0",
+    "yaml": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.19.0",
+    "typescript": "^5"
+  }
+}

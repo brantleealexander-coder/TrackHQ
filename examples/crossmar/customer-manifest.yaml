@@ -1,0 +1,64 @@
+# Crossmar Rentals — reference manifest for what a real tenant looks like.
+# These are Crossmar's actual taxonomy values from the original
+# Dispatcher_Andy deployment. Used by the future migration project that
+# moves Crossmar onto TrackHQ; also handy for testing seed-tenant.ts.
+
+slug: crossmar
+business_name: Crossmar Rentals
+
+brand_color: "#f97316"
+logo_url: https://www.crossmarequip.com/image/site_logo/crossmar_final1.jpg
+site_title: "Fleet Dashboard — Crossmar Rentals"
+
+contact:
+  phone: "+14694020936"
+  email: info@crossmarrentals.com
+  website: https://www.crossmarrentals.com
+
+features:
+  visionlink: true
+  samsara: true
+  quickbooks: true
+  chatbot: true
+
+initial_data:
+  categories:
+    - Dozers
+    - Articulating Trucks
+    - Excavators
+    - Mini Excavators
+    - Compactor
+    - Wheel Loaders
+    - Backhoe Loader
+    - Skid Steer
+    - Screeners
+    - Telehandler
+    - Lifts
+    - Trailers
+    - Grader
+    - Attachments
+    - Landscape
+    - Concrete Equipment
+    - Misc
+    - Water Trucks
+    - Specialty Equipment
+
+  # Behaviors match the original hardcoded enum semantics:
+  #   ON RENT          → rented           (revenue active)
+  #   AVAILABLE        → available        (idle in yard)
+  #   DOWN             → out_of_service   (broken)
+  #   RESERVED         → reserved         (held for a customer)
+  #   IN SERVICE       → out_of_service   (in shop)
+  #   OFF RENT PENDING → pending_return   (customer expected to return)
+  statuses:
+    - { key: on_rent,          name: "On Rent",          color: "#22c55e", behavior: rented,         sort_order: 10 }
+    - { key: available,        name: "Available",        color: "#3b82f6", behavior: available,      sort_order: 20 }
+    - { key: reserved,         name: "Reserved",         color: "#f59e0b", behavior: reserved,       sort_order: 30 }
+    - { key: in_service,       name: "In Service",       color: "#f97316", behavior: out_of_service, sort_order: 40 }
+    - { key: down,             name: "Down",             color: "#ef4444", behavior: out_of_service, sort_order: 50 }
+    - { key: off_rent_pending, name: "Off Rent Pending", color: "#6b7280", behavior: pending_return, sort_order: 60 }
+
+  locations:
+    - { name: "Arkansas",       address: "2500 NE 11th St, Bentonville, AR 72712", latitude: 36.386546, longitude: -94.180629 }
+    - { name: "Texas (Tioga)",  address: "100 Bodovsky Rd, Tioga, TX 76271",       latitude: 33.47083,  longitude: -96.86169 }
+    - { name: "Midland, TX",    address: "10315 FM 307, Midland, TX 79706",        latitude: 32.025369, longitude: -101.908339 }

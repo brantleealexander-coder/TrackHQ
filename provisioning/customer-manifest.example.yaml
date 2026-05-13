@@ -1,0 +1,56 @@
+# TrackHQ tenant manifest — reference example.
+#
+# `provisioning/seed-tenant.ts` reads the `initial_data` block to seed the
+# categories / statuses / locations tables of a tenant's Supabase project.
+# The full Phase 4 `provision-customer.ts` CLI will use the other fields
+# (slug, business_name, features, etc.) to spin up Vercel + Railway and
+# write env vars.
+
+slug: acme-excavators
+business_name: Acme Excavators
+
+# Phase 1 branding (NEXT_PUBLIC_TENANT_CONFIG_JSON values)
+brand_color: "#1e40af"
+logo_url: https://example.com/acme-logo.png
+site_title: Acme Fleet Dashboard
+
+# Used by Phase 4 to generate the receptionist business_config.json
+contact:
+  phone: "+15551234567"
+  email: contact@acme.com
+  website: https://acmeexcavators.example.com
+
+# Toggles for the TenantConfig.features block
+features:
+  visionlink: false
+  samsara: true
+  quickbooks: true
+  chatbot: true
+
+initial_data:
+  # Asset categories — surface as the "Category" dropdown across the dashboard.
+  categories:
+    - Excavators
+    - Loaders
+    - Trailers
+    - Skid Steers
+    - Attachments
+
+  # Statuses — `behavior` must be one of:
+  #   rented | available | out_of_service | reserved | pending_return
+  # The app switches on behavior, so customers can rename statuses
+  # ("On Rent" vs. "Leased") without breaking revenue / utilization logic.
+  statuses:
+    - { key: on_rent,          name: "On Rent",     color: "#22c55e", behavior: rented,         sort_order: 10 }
+    - { key: available,        name: "Available",   color: "#3b82f6", behavior: available,      sort_order: 20 }
+    - { key: reserved,         name: "Reserved",    color: "#f59e0b", behavior: reserved,       sort_order: 30 }
+    - { key: in_shop,          name: "In Shop",     color: "#f97316", behavior: out_of_service, sort_order: 40 }
+    - { key: down,             name: "Down",        color: "#ef4444", behavior: out_of_service, sort_order: 50 }
+    - { key: off_rent_pending, name: "Off Rent (Pending Return)", color: "#6b7280", behavior: pending_return, sort_order: 60 }
+
+  # Locations — equipment.home_location_id references these. Coordinates
+  # are used as the map fallback when a unit has no VisionLink GPS and no
+  # manually entered current_lat/current_lng.
+  locations:
+    - { name: "Main Yard", address: "1234 Main St, Dallas, TX 75201", latitude: 32.7767, longitude: -96.7970 }
+    - { name: "North Lot", address: "500 Industrial Blvd, Plano, TX 75074", latitude: 33.0198, longitude: -96.6989 }
