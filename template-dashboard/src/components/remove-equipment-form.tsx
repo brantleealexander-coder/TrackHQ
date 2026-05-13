@@ -6,8 +6,8 @@ interface EquipmentOption {
   id: number;
   gl_code: string;
   equipment_name: string;
-  division_id: number;
-  divisions: { name: string } | null;
+  category_id: number;
+  categories: { name: string } | null;
 }
 
 interface RemoveEquipmentFormProps {
@@ -23,12 +23,12 @@ export default function RemoveEquipmentForm({ equipment }: RemoveEquipmentFormPr
 
   const selected = equipment.find((e) => e.id === selectedId);
 
-  // Group by division for dropdown
-  const byDivision = new Map<string, EquipmentOption[]>();
+  // Group by category for dropdown
+  const byCategory = new Map<string, EquipmentOption[]>();
   for (const eq of equipment) {
-    const div = eq.divisions?.name ?? `Division ${eq.division_id}`;
-    if (!byDivision.has(div)) byDivision.set(div, []);
-    byDivision.get(div)!.push(eq);
+    const cat = eq.categories?.name ?? `Category ${eq.category_id}`;
+    if (!byCategory.has(cat)) byCategory.set(cat, []);
+    byCategory.get(cat)!.push(eq);
   }
 
   async function handleRemove() {
@@ -67,8 +67,8 @@ export default function RemoveEquipmentForm({ equipment }: RemoveEquipmentFormPr
           className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
         >
           <option value="">— Select equipment —</option>
-          {[...byDivision.entries()].sort().map(([divName, items]) => (
-            <optgroup key={divName} label={divName}>
+          {[...byCategory.entries()].sort().map(([catName, items]) => (
+            <optgroup key={catName} label={catName}>
               {items.map((eq) => (
                 <option key={eq.id} value={eq.id}>
                   {eq.gl_code} — {eq.equipment_name}

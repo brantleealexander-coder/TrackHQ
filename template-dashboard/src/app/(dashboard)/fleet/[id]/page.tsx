@@ -30,11 +30,10 @@ export default async function UnitDetailPage({
 
   if (!rawUnit) notFound();
 
-  const unit = rawUnit as unknown as EquipmentWithStatus & {
-    divisions: { name: string } | null;
-  };
+  const unit = rawUnit as unknown as EquipmentWithStatus;
   const currentStatus = (unit.equipment_status as { status: string }[] | null)?.[0];
-  const divisionName = unit.divisions?.name ?? `Division ${unit.division_id}`;
+  const categoryName = unit.categories?.name ?? `Category ${unit.category_id}`;
+  const homeLocationName = unit.locations?.name ?? null;
 
   // Financial summary for this unit
   const totalRevenue = rentalHistory.reduce(
@@ -64,9 +63,9 @@ export default async function UnitDetailPage({
             <p className="text-sm text-gray-500 font-mono mb-1">{unit.gl_code}</p>
             <h1 className="text-2xl font-bold text-gray-900">{unit.equipment_name}</h1>
             <p className="text-sm text-gray-500 mt-1">
-              {divisionName}
+              {categoryName}
               {unit.year && ` · ${unit.year}`}
-              {unit.home_yard && ` · ${unit.home_yard}`}
+              {homeLocationName && ` · ${homeLocationName}`}
             </p>
           </div>
           {currentStatus && (

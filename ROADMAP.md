@@ -14,6 +14,10 @@ Introduce `template-dashboard/src/lib/tenant-config.ts` and refactor every hardc
 
 Replace the seeded 19 categories and 6-value status enum with customer-defined `categories`, `statuses`, and `locations` tables. Write `provisioning/seed-tenant.ts`. **Done when** a second deployment can use entirely different categories/statuses/locations without touching application code.
 
+- **2a (done):** Schema rewrite — `categories`, `statuses` (text key + `behavior` column), `locations`, `maintenance_logs` tables, plus the previously-missing `equipment.serial_number` / `current_address` / `current_lat` / `current_lng` columns. Types refactored, `queries.ts` joins updated, API routes use status `behavior` instead of hardcoded status names. Field renames (`division_*` → `category_*`, `home_yard` → `home_location_*`) applied throughout.
+- **2b (next):** Refactor UI components to read from the new DB tables. Today they still use hardcoded constants: `STATUS_COLORS` and `YARD_COORDS` in `fleet-map.tsx`, `STATUS_OPTIONS` in `status-form.tsx`, `styles` map in `status-badge.tsx`, `DIVISIONS` array in `add-equipment-form.tsx`. The `showCustomer` / `showRentalFields` logic in `status-form.tsx` also still compares against literal status names — refactor to `behavior`.
+- **2c:** `provisioning/seed-tenant.ts` CLI that takes a tenant manifest and seeds the categories / statuses / locations tables. Also: replace or remove the Crossmar-specific `scripts/seed.ts` and `scripts/refresh-from-latest.ts` — they reference the pre-2a schema and now don't run.
+
 ## Phase 3 — Templatize the receptionist
 
 Move per-business values out of the VAPI assistant config into `business_config.json` placeholders; render on server startup. Make Google Calendar optional. **Done when** the same template renders as either Crossmar's Emma or a different business's persona by editing one JSON file.

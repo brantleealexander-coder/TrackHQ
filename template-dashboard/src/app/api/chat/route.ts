@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: anthropic("claude-sonnet-4-6"),
-    system: `You are the CrossMar Equipment Rental fleet assistant. You have live access to the company's equipment database.
+    system: `You are the fleet assistant for this business. You have live access to the company's equipment database.
 
 You can answer questions about:
 - Current fleet status (who has what equipment, what's available or down)
@@ -47,8 +47,8 @@ For any status count question (how many units are on rent, available, down, etc.
           const { data, error } = await supabase
             .from("equipment")
             .select(
-              `gl_code, equipment_name, division_id,
-               divisions ( name ),
+              `gl_code, equipment_name, category_id,
+               categories ( name ),
                equipment_status ( status, customer_name, job_po_notes, rental_start, rental_end )`
             )
             .order("gl_code", { ascending: true });
@@ -63,18 +63,22 @@ For any status count question (how many units are on rent, available, down, etc.
         parameters: z.object({}),
         execute: async () => {
           const supabase = getSupabase();
-          const [histRes, statusRes, maintRes] = await Promise.all([
+          const [histRes, statusRes, maintRes, defsRes] = await Promise.all([
             supabase
               .from("rental_history")
               .select("revenue_amount, rental_start, status_after")
               .not("revenue_amount", "is", null),
             supabase.from("equipment_status").select("status"),
             supabase.from("maintenance_logs").select("cost, date"),
+            supabase.from("statuses").select("key, behavior"),
           ]);
 
           const history = histRes.data ?? [];
-          const statuses = statusRes.data ?? [];
+          const statusRows = statusRes.data ?? [];
           const maintenance = maintRes.data ?? [];
+          const behaviorByKey = new Map<string, string>(
+            (defsRes.data ?? []).map((s) => [s.key, s.behavior])
+          );
 
           const now = new Date();
           const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -102,13 +106,16 @@ For any status count question (how many units are on rent, available, down, etc.
             }
           }
 
-          const counts: Record<string, number> = {};
-          for (const s of statuses) {
-            counts[s.status] = (counts[s.status] ?? 0) + 1;
+          // Aggregate units by behavior so customers can rename their
+          // statuses without breaking utilization math.
+          const byBehavior: Record<string, number> = {};
+          for (const s of statusRows) {
+            const b = behaviorByKey.get(s.status) ?? "unknown";
+            byBehavior[b] = (byBehavior[b] ?? 0) + 1;
           }
-          const total = statuses.length;
-          const onRent = counts["ON RENT"] ?? 0;
-          const down = counts["DOWN"] ?? 0;
+          const total = statusRows.length;
+          const onRent = byBehavior.rented ?? 0;
+          const down = byBehavior.out_of_service ?? 0;
           const rentable = total - down;
           const utilization = rentable > 0 ? Math.round((onRent / rentable) * 100) : 0;
 
@@ -127,8 +134,8 @@ For any status count question (how many units are on rent, available, down, etc.
             utilization: {
               percentage: utilization,
               onRent,
-              available: counts["AVAILABLE"] ?? 0,
-              reserved: counts["RESERVED"] ?? 0,
+              available: byBehavior.available ?? 0,
+              reserved: byBehavior.reserved ?? 0,
               down,
               total,
             },
@@ -221,8 +228,8 @@ For any status count question (how many units are on rent, available, down, etc.
           const { data, error } = await supabase
             .from("equipment")
             .select(
-              `id, gl_code, equipment_name, division_id,
-               divisions ( name ),
+              `id, gl_code, equipment_name, category_id,
+               categories ( name ),
                equipment_status ( status, customer_name, rental_start, rental_end )`
             )
             .or(`equipment_name.ilike.%${query}%,gl_code.ilike.%${query}%`)

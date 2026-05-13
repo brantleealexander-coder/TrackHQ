@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 
+// TODO Phase 2b: load categories from DB via getCategories() instead of this
+// hardcoded Crossmar-specific list. The submit field name is already
+// category_id so swapping the data source is a UI-only change.
 const DIVISIONS = [
   { id: 1, name: "Dozers" },
   { id: 2, name: "Articulating Trucks" },
@@ -27,7 +30,7 @@ const DIVISIONS = [
 export default function AddEquipmentForm() {
   const [glCode, setGlCode] = useState("");
   const [equipmentName, setEquipmentName] = useState("");
-  const [divisionId, setDivisionId] = useState<number | "">("");
+  const [categoryId, setDivisionId] = useState<number | "">("");
   const [year, setYear] = useState("");
   const [rateDaily, setRateDaily] = useState("");
   const [rateWeekly, setRateWeekly] = useState("");
@@ -51,13 +54,13 @@ export default function AddEquipmentForm() {
       body: JSON.stringify({
         gl_code: glCode,
         equipment_name: equipmentName,
-        division_id: divisionId,
+        category_id: categoryId,
         year: year || null,
         rate_daily: rateDaily || null,
         rate_weekly: rateWeekly || null,
         rate_monthly: rateMonthly || null,
         serial_number: serialNumber || null,
-        home_yard: homeYard || null,
+        home_location_id: homeYard ? Number(homeYard) : null,
         is_cross_charge: isCrossCharge,
       }),
     });
@@ -143,13 +146,13 @@ export default function AddEquipmentForm() {
         />
       </div>
 
-      {/* Division */}
+      {/* Category */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">
-          Division <span className="text-red-500">*</span>
+          Category <span className="text-red-500">*</span>
         </label>
         <select
-          value={divisionId}
+          value={categoryId}
           onChange={(e) => setDivisionId(Number(e.target.value) || "")}
           required
           className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white"

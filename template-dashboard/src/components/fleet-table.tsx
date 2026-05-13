@@ -7,7 +7,7 @@ import StatusBadge from "./status-badge";
 
 interface FleetTableProps {
   rows: FleetRow[];
-  divisionName: string;
+  categoryName: string;
 }
 
 function fmt(n: number | null): string {
@@ -24,7 +24,7 @@ function fmtDate(d: string | null): string {
   });
 }
 
-export default function FleetTable({ rows, divisionName }: FleetTableProps) {
+export default function FleetTable({ rows, categoryName }: FleetTableProps) {
   const [open, setOpen] = useState(true);
 
   return (
@@ -36,7 +36,7 @@ export default function FleetTable({ rows, divisionName }: FleetTableProps) {
         <span className="text-xs text-gray-400 select-none">
           {open ? "▼" : "▶"}
         </span>
-        <h2 className="text-base font-semibold text-gray-700">{divisionName}</h2>
+        <h2 className="text-base font-semibold text-gray-700">{categoryName}</h2>
         <span className="text-xs text-gray-400">({rows.length})</span>
       </button>
 
@@ -104,7 +104,7 @@ export default function FleetTable({ rows, divisionName }: FleetTableProps) {
                     {fmtDate(row.rental_end)}
                   </td>
                   <td className="px-4 py-3 text-gray-500 text-xs max-w-[160px] truncate">
-                    {row.home_yard ?? "—"}
+                    {row.home_location_name ?? "—"}
                   </td>
                 </tr>
               ))}

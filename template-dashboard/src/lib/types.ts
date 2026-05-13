@@ -1,29 +1,55 @@
-export type EquipmentStatus =
-  | "ON RENT"
-  | "AVAILABLE"
-  | "DOWN"
-  | "RESERVED"
-  | "IN SERVICE"
-  | "OFF RENT PENDING";
+// Status keys are tenant-defined (stored in the `statuses` table). Application
+// code should switch on a Status's `behavior` field, not its key or name —
+// see [[trackhq-overview]]. The string alias is kept so call sites that
+// previously took an `EquipmentStatus` don't all need to change.
+export type EquipmentStatus = string;
+
+// Stable behaviors that the application logic understands. Customers can name
+// their statuses anything; behavior decouples display from semantics.
+export type StatusBehavior =
+  | "rented"
+  | "available"
+  | "out_of_service"
+  | "reserved"
+  | "pending_return";
 
 export type RateType = "daily" | "weekly" | "monthly";
 
-export interface Division {
+export interface Category {
   id: number;
   name: string;
+}
+
+export interface Status {
+  key: string;
+  name: string;
+  color: string;
+  behavior: StatusBehavior;
+  sort_order: number;
+}
+
+export interface Location {
+  id: number;
+  name: string;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface Equipment {
   id: number;
   gl_code: string;
   serial_number: string | null;
-  division_id: number;
+  category_id: number;
   equipment_name: string;
   year: number | null;
   rate_daily: number | null;
   rate_weekly: number | null;
   rate_monthly: number | null;
-  home_yard: string | null;
+  home_location_id: number | null;
+  current_address: string | null;
+  current_lat: number | null;
+  current_lng: number | null;
   is_cross_charge: boolean;
   created_at: string;
   updated_at: string;
@@ -57,11 +83,12 @@ export interface RentalHistory {
   recorded_by: string;
 }
 
-// Joined type used in fleet page
-// Supabase returns equipment_status as an array (foreign key is on the child table)
+// Joined type used in fleet page.
+// Supabase returns equipment_status as an array (the FK lives on the child).
 export interface EquipmentWithStatus extends Equipment {
   equipment_status: EquipmentStatusRow[] | null;
-  divisions: Division | null;
+  categories: Category | null;
+  locations: Location | null;
 }
 
 export interface MaintenanceLog {
@@ -79,9 +106,9 @@ export interface MaintenanceLog {
 
 export interface SamsaraDevice {
   id: number;
-  gateway_serial: string | null;     // real hardware serial, e.g. "G522-SBG-JT9"
-  samsara_id: string;                // stable Samsara asset id — primary identity
-  samsara_name: string | null;       // user-set asset name from Samsara
+  gateway_serial: string | null;
+  samsara_id: string;
+  samsara_name: string | null;
   notes: string | null;
   equipment_id: number | null;
   is_active: boolean;
@@ -100,19 +127,22 @@ export interface SamsaraDeviceWithEquipment extends SamsaraDevice {
   } | null;
 }
 
-// Flattened row used in tables
+// Flattened row used in tables. Status fields come from the
+// `equipment_status` table; category_name / home_location_name come from
+// joins to `categories` / `locations`.
 export interface FleetRow {
   id: number;
   gl_code: string;
   serial_number: string | null;
-  division_id: number;
-  division_name: string;
+  category_id: number;
+  category_name: string;
   equipment_name: string;
   year: number | null;
   rate_daily: number | null;
   rate_weekly: number | null;
   rate_monthly: number | null;
-  home_yard: string | null;
+  home_location_id: number | null;
+  home_location_name: string | null;
   is_cross_charge: boolean;
   status: EquipmentStatus;
   customer_name: string | null;

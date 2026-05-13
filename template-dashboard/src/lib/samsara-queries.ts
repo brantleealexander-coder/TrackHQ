@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from "./supabase";
-import type { SamsaraDeviceWithEquipment, EquipmentStatus } from "./types";
+import type { SamsaraDeviceWithEquipment } from "./types";
 
 // Fetch all Samsara devices with their (optional) linked equipment + status.
 export async function getSamsaraDevices(): Promise<SamsaraDeviceWithEquipment[]> {
@@ -37,7 +37,7 @@ export async function getSamsaraDevices(): Promise<SamsaraDeviceWithEquipment[]>
           id: row.equipment.id,
           gl_code: row.equipment.gl_code,
           equipment_name: row.equipment.equipment_name,
-          status: (row.equipment.equipment_status?.[0]?.status ?? "AVAILABLE") as EquipmentStatus,
+          status: row.equipment.equipment_status?.[0]?.status ?? "",
         }
       : null,
   }));

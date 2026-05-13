@@ -16,22 +16,22 @@ export default async function FleetPage() {
 
   const summary = computeFleetSummary(statusCounts, fleet.length);
 
-  // Group by division
-  const byDivision = new Map<number, { name: string; rows: FleetRow[] }>();
+  // Group by category
+  const byCategory = new Map<number, { name: string; rows: FleetRow[] }>();
   for (const row of fleet) {
-    if (!byDivision.has(row.division_id)) {
-      byDivision.set(row.division_id, { name: row.division_name, rows: [] });
+    if (!byCategory.has(row.category_id)) {
+      byCategory.set(row.category_id, { name: row.category_name, rows: [] });
     }
-    byDivision.get(row.division_id)!.rows.push(row);
+    byCategory.get(row.category_id)!.rows.push(row);
   }
-  const divisions = Array.from(byDivision.entries()).sort(([a], [b]) => a - b);
+  const categories = Array.from(byCategory.entries()).sort(([a], [b]) => a - b);
 
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Fleet Status</h1>
         <p className="text-sm text-gray-500 mt-1">
-          {summary.totalUnits} units across {divisions.length} divisions
+          {summary.totalUnits} units across {categories.length} categories
         </p>
       </div>
 
@@ -60,9 +60,9 @@ export default async function FleetPage() {
         />
       </div>
 
-      {/* Equipment tables by division */}
-      {divisions.map(([divId, { name, rows }]) => (
-        <FleetTable key={divId} rows={rows} divisionName={name} />
+      {/* Equipment tables by category */}
+      {categories.map(([catId, { name, rows }]) => (
+        <FleetTable key={catId} rows={rows} categoryName={name} />
       ))}
     </div>
   );

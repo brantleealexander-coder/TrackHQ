@@ -38,35 +38,47 @@ export async function PATCH(
 
   const supabase = getSupabase();
 
-  // 1. Fetch current equipment_status + equipment rates
-  const { data: current, error: fetchErr } = await supabase
-    .from("equipment_status")
-    .select(
-      "status, rate_type, rental_start, rental_end, customer_name, job_po_notes"
-    )
-    .eq("equipment_id", equipmentId)
-    .maybeSingle();
+  // 1. Fetch current equipment_status + equipment rates + the tenant's
+  //    status behavior map (so revenue logic switches on behavior, not on
+  //    hardcoded status names).
+  const [currentRes, eqRes, statusesRes] = await Promise.all([
+    supabase
+      .from("equipment_status")
+      .select("status, rate_type, rental_start, rental_end, customer_name, job_po_notes")
+      .eq("equipment_id", equipmentId)
+      .maybeSingle(),
+    supabase
+      .from("equipment")
+      .select("rate_daily, rate_weekly, rate_monthly")
+      .eq("id", equipmentId)
+      .single(),
+    supabase.from("statuses").select("key, behavior"),
+  ]);
 
-  if (fetchErr) {
-    return NextResponse.json({ error: fetchErr.message }, { status: 500 });
+  if (currentRes.error) {
+    return NextResponse.json({ error: currentRes.error.message }, { status: 500 });
+  }
+  if (eqRes.error) {
+    return NextResponse.json({ error: eqRes.error.message }, { status: 500 });
+  }
+  if (statusesRes.error) {
+    return NextResponse.json({ error: statusesRes.error.message }, { status: 500 });
   }
 
-  const { data: eq, error: eqErr } = await supabase
-    .from("equipment")
-    .select("rate_daily, rate_weekly, rate_monthly")
-    .eq("id", equipmentId)
-    .single();
-
-  if (eqErr) {
-    return NextResponse.json({ error: eqErr.message }, { status: 500 });
-  }
+  const current = currentRes.data;
+  const eq = eqRes.data;
+  const behaviorByKey = new Map<string, string>(
+    (statusesRes.data ?? []).map((s) => [s.key, s.behavior])
+  );
+  const previousBehavior = behaviorByKey.get(current?.status ?? "");
+  const newBehavior = behaviorByKey.get(status);
 
   // 2. Compute revenue if we're closing a rental
   let revenue_amount: number | null = null;
-  const wasOnRent = current?.status === "ON RENT";
+  const wasRented = previousBehavior === "rented";
   const closingRental =
-    wasOnRent &&
-    status !== "ON RENT" &&
+    wasRented &&
+    newBehavior !== "rented" &&
     current?.rental_start;
 
   if (closingRental) {
@@ -130,7 +142,7 @@ export async function PATCH(
     } catch {
       // Geocoding failure is non-fatal — location just won't update on map
     }
-  } else if (status === "AVAILABLE" || status === "IN SERVICE") {
+  } else if (newBehavior === "available" || newBehavior === "out_of_service") {
     // Clear location when equipment returns to yard
     await supabase
       .from("equipment")

@@ -7,8 +7,8 @@ interface EquipmentOption {
   id: number;
   gl_code: string;
   equipment_name: string;
-  division_id: number;
-  divisions: { name: string } | null;
+  category_id: number;
+  categories: { name: string } | null;
 }
 
 const STATUS_OPTIONS: EquipmentStatus[] = [
@@ -47,12 +47,12 @@ export default function StatusForm({ equipment }: StatusFormProps) {
   const showRentalFields = status === "ON RENT";
   const showRentalEnd = status === "ON RENT" || status === "OFF RENT PENDING";
 
-  // Group equipment by division for the dropdown
-  const byDivision = new Map<string, EquipmentOption[]>();
+  // Group equipment by category for the dropdown
+  const byCategory = new Map<string, EquipmentOption[]>();
   for (const eq of equipment) {
-    const div = eq.divisions?.name ?? `Division ${eq.division_id}`;
-    if (!byDivision.has(div)) byDivision.set(div, []);
-    byDivision.get(div)!.push(eq);
+    const cat = eq.categories?.name ?? `Category ${eq.category_id}`;
+    if (!byCategory.has(cat)) byCategory.set(cat, []);
+    byCategory.get(cat)!.push(eq);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -118,8 +118,8 @@ export default function StatusForm({ equipment }: StatusFormProps) {
           className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         >
           <option value="">— Select equipment —</option>
-          {[...byDivision.entries()].sort().map(([divName, items]) => (
-            <optgroup key={divName} label={divName}>
+          {[...byCategory.entries()].sort().map(([catName, items]) => (
+            <optgroup key={catName} label={catName}>
               {items.map((eq) => (
                 <option key={eq.id} value={eq.id}>
                   {eq.gl_code} — {eq.equipment_name}

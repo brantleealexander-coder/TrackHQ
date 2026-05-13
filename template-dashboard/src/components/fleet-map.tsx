@@ -76,7 +76,7 @@ function spreadUnits(
     }
 
     // 3. Fall back to yard coordinates — tight circle around the yard address
-    const yard = unit.home_yard ?? "";
+    const yard = unit.home_location_name ?? "";
     const defaultCoords = Object.values(YARD_COORDS)[0];
     const coords = YARD_COORDS[yard] ?? defaultCoords;
     const idx = yardCounts[yard] ?? 0;
@@ -123,15 +123,15 @@ export default function FleetMap({
   const [yardFilter, setYardFilter] = useState<string>("all");
 
   const categories = useMemo(() => {
-    const set = new Set(fleet.map((u) => u.division_name));
+    const set = new Set(fleet.map((u) => u.category_name));
     return Array.from(set).sort();
   }, [fleet]);
 
   const units = useMemo(() => {
     let filtered = fleet;
     if (statusFilter !== "all") filtered = filtered.filter((u) => u.status === statusFilter);
-    if (categoryFilter !== "all") filtered = filtered.filter((u) => u.division_name === categoryFilter);
-    if (yardFilter !== "all") filtered = filtered.filter((u) => u.home_yard === yardFilter);
+    if (categoryFilter !== "all") filtered = filtered.filter((u) => u.category_name === categoryFilter);
+    if (yardFilter !== "all") filtered = filtered.filter((u) => u.home_location_name === yardFilter);
     return spreadUnits(filtered, telematics ?? null);
   }, [fleet, telematics, statusFilter, categoryFilter, yardFilter]);
 
@@ -354,7 +354,7 @@ export default function FleetMap({
                   <span className="font-mono text-xs font-bold text-gray-800">{selected.gl_code}</span>
                 </div>
                 <p className="text-sm font-semibold text-gray-900">{selected.equipment_name}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{selected.division_name}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{selected.category_name}</p>
                 <div className="mt-2 space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Status</span>
@@ -379,7 +379,7 @@ export default function FleetMap({
                   ) : (
                     <div className="flex justify-between">
                       <span className="text-gray-500">Yard</span>
-                      <span className="font-medium">{YARD_COORDS[selected.home_yard ?? ""]?.name ?? selected.home_yard ?? "Unknown"}</span>
+                      <span className="font-medium">{YARD_COORDS[selected.home_location_name ?? ""]?.name ?? selected.home_location_name ?? "Unknown"}</span>
                     </div>
                   )}
                 </div>
