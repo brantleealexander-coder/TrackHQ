@@ -6,6 +6,7 @@
   "scripts": {
     "seed-tenant": "tsx seed-tenant.ts",
     "provision": "tsx provision-customer.ts",
+    "dev-bootstrap": "tsx dev-bootstrap.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/**/*.test.ts"
   },

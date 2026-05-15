@@ -24,6 +24,25 @@ Fork-per-customer. The operator (Brantlee) hosts every customer deployment under
 
 See [ROADMAP.md](ROADMAP.md) for the phased build plan.
 
+## Running the dashboard locally
+
+For a quick end-to-end smoke test against a fresh Supabase project (no Vercel/Railway needed):
+
+1. Create a free-tier Supabase project at https://supabase.com
+2. Paste `template-dashboard/supabase_schema.sql` into Supabase → SQL Editor → New query → Run
+3. From the Project Settings → API page, copy your URL, anon key, and service-role key
+4. Seed taxonomies + fake equipment + emit your `.env.local`:
+   ```powershell
+   $env:SUPABASE_URL = "https://yourref.supabase.co"
+   $env:SUPABASE_SERVICE_KEY = "eyJ..."        # service_role
+   $env:SUPABASE_ANON_KEY = "eyJ..."           # anon
+   cd provisioning
+   npm install
+   npm run dev-bootstrap
+   ```
+5. Paste the printed env block into `template-dashboard/.env.local`
+6. `cd template-dashboard && npm install && npm run dev` — open http://localhost:3000
+
 ## Reference codebase
 
 The TrackHQ template is derived from the Crossmar Dispatcher Andy deployment (at `../Dispatcher_Andy/`). That deployment remains the first paying customer and continues to run independently until a separate migration project moves it onto TrackHQ.
