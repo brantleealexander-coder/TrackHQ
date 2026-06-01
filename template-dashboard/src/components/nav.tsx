@@ -6,14 +6,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { getTenantConfig } from "@/lib/tenant-config";
 
 const allLinks: { href: string; label: string; feature?: "samsara" | "visionlink" | "quickbooks" }[] = [
-  { href: "/fleet", label: "Fleet Status" },
-  { href: "/financials", label: "Financials" },
-  { href: "/accounting", label: "Accounting", feature: "quickbooks" },
-  { href: "/map", label: "Fleet Map" },
-  { href: "/telematics", label: "Telematics", feature: "visionlink" },
-  { href: "/samsara", label: "Samsara Devices", feature: "samsara" },
-  { href: "/maintenance", label: "Log Maintenance" },
-  { href: "/admin", label: "Update Status" },
+  { href: "/app/fleet", label: "Fleet Status" },
+  { href: "/app/financials", label: "Financials" },
+  { href: "/app/accounting", label: "Accounting", feature: "quickbooks" },
+  { href: "/app/map", label: "Fleet Map" },
+  { href: "/app/telematics", label: "Telematics", feature: "visionlink" },
+  { href: "/app/samsara", label: "Samsara Devices", feature: "samsara" },
+  { href: "/app/maintenance", label: "Log Maintenance" },
+  { href: "/app/admin", label: "Update Status" },
 ];
 
 export default function Nav() {
@@ -44,9 +44,6 @@ export default function Nav() {
         ) : (
           <p className="text-lg font-bold text-white">{business.name}</p>
         )}
-        <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mt-3">
-          Fleet Dashboard
-        </p>
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">

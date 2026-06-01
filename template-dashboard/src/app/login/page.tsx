@@ -23,7 +23,7 @@ export default function LoginPage() {
     });
 
     if (res.ok) {
-      router.push("/fleet");
+      router.push("/app/fleet");
       router.refresh();
     } else {
       setError("Incorrect password. Please try again.");
@@ -38,7 +38,7 @@ export default function LoginPage() {
           <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-1">
             {business.name}
           </p>
-          <h1 className="text-2xl font-bold text-white">Fleet Dashboard</h1>
+          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
         </div>
 
         <form

@@ -26,10 +26,10 @@ export interface TenantConfig {
 
 const DEFAULT_CONFIG: TenantConfig = {
   business: {
-    name: "Fleet Operator",
+    name: "TrackHQ",
     logo_url: "",
-    brand_color: "#f97316",
-    site_title: "Fleet Dashboard",
+    brand_color: "#1e40af",
+    site_title: "TrackHQ",
   },
   features: {
     visionlink: false,
@@ -67,10 +67,11 @@ export function getTenantConfig(): TenantConfig {
  */
 export function brandColorToRgbTriple(hex: string): string {
   const normalized = hex.replace(/^#/, "").trim();
-  if (normalized.length !== 6) return "249 115 22";
+  // Fallback: TrackHQ steel/navy #1e40af = (30, 64, 175)
+  if (normalized.length !== 6) return "30 64 175";
   const r = parseInt(normalized.slice(0, 2), 16);
   const g = parseInt(normalized.slice(2, 4), 16);
   const b = parseInt(normalized.slice(4, 6), 16);
-  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return "249 115 22";
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return "30 64 175";
   return `${r} ${g} ${b}`;
 }
