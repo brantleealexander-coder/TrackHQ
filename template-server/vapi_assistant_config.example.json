@@ -173,6 +173,63 @@
         }
       },
       "server": { "url": "${webhook_url}" }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "checkAssetAvailability",
+        "description": "Check which rental assets are currently available. Use when a caller asks 'do you have any X' or 'is the X available'. Filter by category (e.g. 'excavators', 'water trucks') or by a specific asset name/model.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "category": { "type": "string", "description": "Asset category to filter by (e.g. 'Excavators', 'Skid Steer'). Optional." },
+            "assetQuery": { "type": "string", "description": "Free-text search of the asset name (e.g. 'CAT 314', 'John Deere 310'). Optional." }
+          },
+          "required": []
+        }
+      },
+      "server": { "url": "${webhook_url}" }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "quoteRentalRate",
+        "description": "Quote a rental rate for a specific asset. Provide either glCode (e.g. 'DEV-001') or assetName (e.g. 'CAT 314'). Provide rateType ('daily' | 'weekly' | 'monthly') and either durationDays or rental_start + rental_end so a total can be calculated.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "glCode": { "type": "string", "description": "The asset's internal GL code, if known." },
+            "assetName": { "type": "string", "description": "The asset's name (used if glCode not provided)." },
+            "rateType": { "type": "string", "enum": ["daily", "weekly", "monthly"], "description": "Which rate to quote." },
+            "durationDays": { "type": "integer", "description": "Number of days the rental will cover. Used to compute the total." }
+          },
+          "required": ["rateType"]
+        }
+      },
+      "server": { "url": "${webhook_url}" }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "bookRental",
+        "description": "Book a rental for the caller. Confirm the caller's name, the asset (by GL code or name), start/end dates, and rate type before calling. Returns a confirmation number. The booking goes to the operator's queue for final confirmation.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "callerName": { "type": "string", "description": "The caller's full name." },
+            "callerPhone": { "type": "string", "description": "The caller's phone number." },
+            "callerEmail": { "type": "string", "description": "The caller's email (optional but recommended so the operator can send confirmation)." },
+            "glCode": { "type": "string", "description": "The asset's GL code (preferred lookup)." },
+            "assetName": { "type": "string", "description": "The asset name (fallback if no glCode)." },
+            "rentalStart": { "type": "string", "description": "Start date in YYYY-MM-DD." },
+            "rentalEnd": { "type": "string", "description": "End date in YYYY-MM-DD." },
+            "rateType": { "type": "string", "enum": ["daily", "weekly", "monthly"], "description": "Which rate the caller agreed to." },
+            "notes": { "type": "string", "description": "Anything else the operator should know (delivery address, site notes, etc.)" }
+          },
+          "required": ["callerName", "rentalStart", "rentalEnd"]
+        }
+      },
+      "server": { "url": "${webhook_url}" }
     }
   ],
   "analysisPlan": {

@@ -170,6 +170,10 @@ async def dispatch_tool(name: str, params: dict, message: dict) -> str:
         "getBusinessInfo":       tool_get_business_info,
         "takeMessage":           tool_take_message,
         "dispatchMechanic":      tool_dispatch_mechanic,
+        # Rental ordering (Phase 5f)
+        "checkAssetAvailability": tool_check_asset_availability,
+        "quoteRentalRate":        tool_quote_rental_rate,
+        "bookRental":             tool_book_rental,
     }
 
     handler = dispatch.get(name)
@@ -575,6 +579,219 @@ def _extract_caller_name(call: dict, summary: str, artifact: dict, phone: str) -
             logger.warning("[WARN] webhook: name lookup failed: %s", str(e))
 
     return ""
+
+
+# ---------------------------------------------------------------------------
+# Rental ordering tools (Phase 5f) — voice agent equivalents of the /book
+# hosted POS flow. They read/write the same per-tenant tables (equipment,
+# equipment_status, statuses, booking_requests) but speak voice-friendly
+# sentences instead of returning JSON.
+# ---------------------------------------------------------------------------
+
+def _fmt_money(n) -> str:
+    if n is None:
+        return "no listed rate"
+    try:
+        return f"${int(round(float(n))):,}"
+    except Exception:
+        return str(n)
+
+
+def _available_status_keys(supabase) -> set:
+    try:
+        result = (
+            supabase.table("statuses")
+            .select("key, behavior")
+            .eq("behavior", "available")
+            .execute()
+        )
+        return {r["key"] for r in (result.data or [])}
+    except Exception as e:
+        logger.warning("[WARN] webhook: status keys lookup failed: %s", str(e))
+        return set()
+
+
+async def tool_check_asset_availability(params: dict, message: dict) -> str:
+    from app.database import supabase
+    if not supabase:
+        return "I can't check inventory right now."
+
+    category = (params.get("category") or "").strip().lower()
+    asset_query = (params.get("assetQuery") or "").strip().lower()
+
+    available_keys = _available_status_keys(supabase)
+    if not available_keys:
+        return "I'm not finding any available units in our system right now."
+
+    try:
+        rows = (
+            supabase.table("equipment")
+            .select(
+                "id, gl_code, equipment_name, year, rate_daily, rate_weekly, "
+                "rate_monthly, categories(name), equipment_status(status)"
+            )
+            .order("equipment_name")
+            .execute()
+        ).data or []
+    except Exception as e:
+        logger.error("[ERROR] webhook: checkAssetAvailability: %s", str(e))
+        return "I ran into an issue looking up our inventory."
+
+    matches = []
+    for r in rows:
+        status_rows = r.get("equipment_status") or []
+        status_key = status_rows[0].get("status") if status_rows else None
+        if status_key not in available_keys:
+            continue
+        cat_name = ((r.get("categories") or {}).get("name") or "").lower()
+        name = (r.get("equipment_name") or "").lower()
+        if category and category not in cat_name:
+            continue
+        if asset_query and asset_query not in name and asset_query not in (r.get("gl_code") or "").lower():
+            continue
+        matches.append(r)
+
+    if not matches:
+        if category or asset_query:
+            return "I'm not seeing anything matching that available right now. Want me to take a message so the team can call you back with options?"
+        return "I'm not seeing anything available right now."
+
+    head = matches[:3]
+    pieces = []
+    for r in head:
+        rate = _fmt_money(r.get("rate_daily"))
+        pieces.append(
+            f"{r.get('equipment_name')} (GL code {r.get('gl_code')}) at {rate} per day"
+        )
+    if len(matches) > 3:
+        return ". ".join(pieces) + f". I have {len(matches) - 3} more available — want me to keep reading?"
+    return ". ".join(pieces) + "."
+
+
+async def tool_quote_rental_rate(params: dict, message: dict) -> str:
+    from app.database import supabase
+    if not supabase:
+        return "I can't pull rates right now."
+
+    gl_code = (params.get("glCode") or "").strip()
+    asset_name = (params.get("assetName") or "").strip()
+    rate_type = (params.get("rateType") or "").strip().lower()
+    duration_days = params.get("durationDays")
+
+    if rate_type not in ("daily", "weekly", "monthly"):
+        return "I need to know if you want daily, weekly, or monthly pricing."
+
+    if not gl_code and not asset_name:
+        return "Which unit are you asking about? You can give me the GL code or just the name."
+
+    try:
+        q = supabase.table("equipment").select(
+            "id, gl_code, equipment_name, rate_daily, rate_weekly, rate_monthly"
+        )
+        if gl_code:
+            q = q.ilike("gl_code", gl_code)
+        else:
+            q = q.ilike("equipment_name", f"%{asset_name}%")
+        rows = q.limit(1).execute().data or []
+    except Exception as e:
+        logger.error("[ERROR] webhook: quoteRentalRate: %s", str(e))
+        return "I ran into an issue pulling that rate."
+
+    if not rows:
+        return "I'm not finding that unit in our system. Can you double-check the name or GL code?"
+
+    unit = rows[0]
+    rate_col = {"daily": "rate_daily", "weekly": "rate_weekly", "monthly": "rate_monthly"}[rate_type]
+    base = unit.get(rate_col)
+    if base is None:
+        return f"The {unit.get('equipment_name')} doesn't have a published {rate_type} rate — I'd need to grab someone for a quote."
+
+    base_str = _fmt_money(base)
+    line = f"The {rate_type} rate on the {unit.get('equipment_name')} is {base_str}"
+
+    if duration_days:
+        try:
+            days = int(duration_days)
+        except Exception:
+            days = 0
+        if days > 0:
+            if rate_type == "daily":
+                total = float(base) * days
+            elif rate_type == "weekly":
+                periods = max(1, -(-days // 7))  # ceil
+                total = float(base) * periods
+            else:
+                periods = max(1, -(-days // 28))
+                total = float(base) * periods
+            return f"{line}. For {days} day{'s' if days != 1 else ''} that comes to about {_fmt_money(total)}."
+
+    return f"{line}."
+
+
+async def tool_book_rental(params: dict, message: dict) -> str:
+    from app.database import supabase
+    if not supabase:
+        return "I can't take bookings right now. Let me take a message instead."
+
+    caller_phone = (params.get("callerPhone") or get_caller_phone(message) or "").strip()
+    caller_name = (params.get("callerName") or "").strip()
+    caller_email = (params.get("callerEmail") or "").strip()
+    gl_code = (params.get("glCode") or "").strip()
+    asset_name = (params.get("assetName") or "").strip()
+    rental_start = (params.get("rentalStart") or "").strip()
+    rental_end = (params.get("rentalEnd") or "").strip()
+    rate_type = (params.get("rateType") or "").strip().lower() or None
+    notes = (params.get("notes") or "").strip() or None
+
+    if not caller_name:
+        return "I need your name to book this. Who am I speaking with?"
+    if not rental_start or not rental_end:
+        return "I need start and end dates for the rental."
+    if not (gl_code or asset_name):
+        return "Which unit are we booking? GL code or name works."
+    if rate_type and rate_type not in ("daily", "weekly", "monthly"):
+        rate_type = None
+
+    try:
+        q = supabase.table("equipment").select("id, gl_code, equipment_name")
+        if gl_code:
+            q = q.ilike("gl_code", gl_code)
+        else:
+            q = q.ilike("equipment_name", f"%{asset_name}%")
+        rows = q.limit(1).execute().data or []
+    except Exception as e:
+        logger.error("[ERROR] webhook: bookRental lookup: %s", str(e))
+        return "I ran into an issue finding that unit."
+
+    if not rows:
+        return "I'm not finding that unit. Want me to take a message so we can confirm and call you back?"
+
+    unit = rows[0]
+    payload = {
+        "equipment_id": unit["id"],
+        "renter_name": caller_name,
+        "renter_email": caller_email or "voice@trackhq.com",
+        "renter_phone": caller_phone or None,
+        "rental_start": rental_start,
+        "rental_end": rental_end,
+        "rate_type": rate_type,
+        "notes": notes,
+        "source": "voice",
+    }
+
+    try:
+        result = supabase.table("booking_requests").insert(payload).execute()
+        row = (result.data or [{}])[0]
+        booking_id = row.get("id")
+    except Exception as e:
+        logger.error("[ERROR] webhook: bookRental insert: %s", str(e))
+        return "I couldn't save the booking. Let me take a message and the team will call you right back."
+
+    ref = f"#{int(booking_id):06d}" if booking_id else ""
+    return (
+        f"Booked. I have you down for the {unit.get('equipment_name')} from {rental_start} to {rental_end}. "
+        f"The team will confirm by phone or email shortly. Reference {ref}."
+    )
 
 
 # ---------------------------------------------------------------------------
