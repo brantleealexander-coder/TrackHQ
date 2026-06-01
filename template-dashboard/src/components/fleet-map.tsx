@@ -8,6 +8,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import type { FleetRow, SamsaraDeviceWithEquipment, Status, Location } from "@/lib/types";
 import type { TelematicsAsset } from "@/lib/visionlink";
 import type { SamsaraAsset } from "@/lib/samsara";
+import { getTenantConfig } from "@/lib/tenant-config";
 
 const SAMSARA_UNLINKED_GRAY = "#9ca3af";
 const UNKNOWN_STATUS_COLOR = "#6b7280";
@@ -107,6 +108,7 @@ export default function FleetMap({
   samsaraAssets = null,
 }: FleetMapProps) {
   const router = useRouter();
+  const { terminology } = getTenantConfig();
   const [selected, setSelected] = useState<(FleetRow & { lat: number; lng: number; hasGps: boolean }) | null>(null);
   const [selectedSamsara, setSelectedSamsara] = useState<SamsaraMarker | null>(null);
   const [samsaraNoteDraft, setSamsaraNoteDraft] = useState<string>("");
@@ -296,10 +298,10 @@ export default function FleetMap({
             <div className="max-w-md">
               <p className="text-sm font-medium text-gray-700 mb-2">Map tiles not configured</p>
               <p className="text-xs text-gray-500">
-                Set <code className="px-1.5 py-0.5 bg-gray-200 rounded text-[11px]">NEXT_PUBLIC_MAPBOX_TOKEN</code> in <code className="px-1.5 py-0.5 bg-gray-200 rounded text-[11px]">.env.local</code> (or Vercel env vars) with a Mapbox public token (<code className="px-1.5 py-0.5 bg-gray-200 rounded text-[11px]">pk.*</code>) and restart the dev server to enable the fleet map.
+                Set <code className="px-1.5 py-0.5 bg-gray-200 rounded text-[11px]">NEXT_PUBLIC_MAPBOX_TOKEN</code> in <code className="px-1.5 py-0.5 bg-gray-200 rounded text-[11px]">.env.local</code> (or Vercel env vars) with a Mapbox public token (<code className="px-1.5 py-0.5 bg-gray-200 rounded text-[11px]">pk.*</code>) and restart the dev server to enable the map.
               </p>
               <p className="mt-3 text-xs text-gray-400">
-                Showing <span className="font-semibold text-gray-600">{units.length}</span> of {fleet.length} units (table view available in the Fleet tab).
+                Showing <span className="font-semibold text-gray-600">{units.length}</span> of {fleet.length} units (table view available in the {terminology.asset_plural} tab).
               </p>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { computeFleetSummary } from "@/lib/financials";
 import FleetTable from "@/components/fleet-table";
 import StatCard from "@/components/stat-card";
 import type { FleetRow } from "@/lib/types";
+import { getTenantConfig } from "@/lib/tenant-config";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ export default async function FleetPage() {
     getStatuses(),
   ]);
 
+  const { terminology } = getTenantConfig();
   const summary = computeFleetSummary(statusCounts, fleet.length, statuses);
 
   // Group by category
@@ -30,7 +32,7 @@ export default async function FleetPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Fleet Status</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{terminology.asset_plural}</h1>
         <p className="text-sm text-gray-500 mt-1">
           {summary.totalUnits} units across {categories.length} categories
         </p>

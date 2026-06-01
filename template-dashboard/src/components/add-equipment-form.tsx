@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Category, Location } from "@/lib/types";
+import { getTenantConfig } from "@/lib/tenant-config";
 
 interface AddEquipmentFormProps {
   categories: Category[];
@@ -9,6 +10,7 @@ interface AddEquipmentFormProps {
 }
 
 export default function AddEquipmentForm({ categories, locations }: AddEquipmentFormProps) {
+  const { terminology } = getTenantConfig();
   const [glCode, setGlCode] = useState("");
   const [equipmentName, setEquipmentName] = useState("");
   const [categoryId, setCategoryId] = useState<number | "">("");
@@ -101,7 +103,7 @@ export default function AddEquipmentForm({ categories, locations }: AddEquipment
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">
-          Equipment Name <span className="text-red-500">*</span>
+          {terminology.asset_singular} Name <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
@@ -240,7 +242,7 @@ export default function AddEquipmentForm({ categories, locations }: AddEquipment
         disabled={loading}
         className="w-full py-2.5 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-medium transition-colors"
       >
-        {loading ? "Adding…" : "Add Equipment"}
+        {loading ? "Adding…" : `Add ${terminology.asset_singular}`}
       </button>
     </form>
   );

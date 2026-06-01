@@ -5,6 +5,7 @@ import { fetchSamsaraAssets, isSamsaraConfigured } from "@/lib/samsara";
 import { getSamsaraDevices } from "@/lib/samsara-queries";
 import FleetMap from "@/components/fleet-map";
 import AutoRefresh from "@/components/auto-refresh";
+import { getTenantConfig } from "@/lib/tenant-config";
 
 export const dynamic = "force-dynamic";
 
@@ -20,10 +21,12 @@ export default async function MapPage() {
     isSamsaraConfigured() ? fetchSamsaraAssets().catch(() => null) : Promise.resolve(null),
   ]);
 
+  const { terminology } = getTenantConfig();
+
   return (
     <div>
       <AutoRefresh intervalMs={60_000} />
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">Fleet Map</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-4">{terminology.asset_plural} Map</h1>
       <FleetMap
         fleet={fleet}
         statuses={statuses}

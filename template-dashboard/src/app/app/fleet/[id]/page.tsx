@@ -11,6 +11,7 @@ import { formatCurrency } from "@/lib/financials";
 import StatusBadge from "@/components/status-badge";
 import UnitHistory from "@/components/unit-history";
 import type { EquipmentWithStatus } from "@/lib/types";
+import { getTenantConfig } from "@/lib/tenant-config";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export default async function UnitDetailPage({
   const currentStatus = (unit.equipment_status as { status: string }[] | null)?.[0];
   const categoryName = unit.categories?.name ?? `Category ${unit.category_id}`;
   const homeLocationName = unit.locations?.name ?? null;
+  const { terminology } = getTenantConfig();
 
   // Financial summary for this unit
   const totalRevenue = rentalHistory.reduce(
@@ -55,7 +57,7 @@ export default async function UnitDetailPage({
         href="/app/fleet"
         className="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-800 mb-6"
       >
-        ← Back to Fleet
+        ← Back to {terminology.asset_plural}
       </Link>
 
       {/* Unit header */}

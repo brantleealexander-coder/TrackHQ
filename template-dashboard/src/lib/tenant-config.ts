@@ -22,6 +22,11 @@ export interface TenantConfig {
     quickbooks: boolean;
     chatbot: boolean;
   };
+  terminology: {
+    asset_plural: string;
+    asset_singular: string;
+    action_verb: string;
+  };
 }
 
 const DEFAULT_CONFIG: TenantConfig = {
@@ -36,6 +41,11 @@ const DEFAULT_CONFIG: TenantConfig = {
     samsara: false,
     quickbooks: false,
     chatbot: false,
+  },
+  terminology: {
+    asset_plural: "Assets",
+    asset_singular: "Asset",
+    action_verb: "Rent",
   },
 };
 
@@ -53,6 +63,7 @@ export function getTenantConfig(): TenantConfig {
     cached = {
       business: { ...DEFAULT_CONFIG.business, ...(parsed.business ?? {}) },
       features: { ...DEFAULT_CONFIG.features, ...(parsed.features ?? {}) },
+      terminology: { ...DEFAULT_CONFIG.terminology, ...(parsed.terminology ?? {}) },
     };
     return cached;
   } catch {

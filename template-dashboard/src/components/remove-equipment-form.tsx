@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { getTenantConfig } from "@/lib/tenant-config";
 
 interface EquipmentOption {
   id: number;
@@ -15,6 +16,7 @@ interface RemoveEquipmentFormProps {
 }
 
 export default function RemoveEquipmentForm({ equipment }: RemoveEquipmentFormProps) {
+  const { terminology } = getTenantConfig();
   const [selectedId, setSelectedId] = useState<number | "">("");
   const [confirmed, setConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -54,7 +56,7 @@ export default function RemoveEquipmentForm({ equipment }: RemoveEquipmentFormPr
     <div className="bg-white rounded-xl shadow-sm p-8 space-y-6 max-w-2xl">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">
-          Equipment to Remove <span className="text-red-500">*</span>
+          {terminology.asset_singular} to Remove <span className="text-red-500">*</span>
         </label>
         <select
           value={selectedId}
@@ -66,7 +68,7 @@ export default function RemoveEquipmentForm({ equipment }: RemoveEquipmentFormPr
           }}
           className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
         >
-          <option value="">— Select equipment —</option>
+          <option value="">— Select {terminology.asset_singular.toLowerCase()} —</option>
           {[...byCategory.entries()].sort().map(([catName, items]) => (
             <optgroup key={catName} label={catName}>
               {items.map((eq) => (
@@ -112,7 +114,7 @@ export default function RemoveEquipmentForm({ equipment }: RemoveEquipmentFormPr
         disabled={loading || !selectedId || !confirmed}
         className="w-full py-2.5 px-4 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-medium transition-colors"
       >
-        {loading ? "Removing…" : "Remove Equipment"}
+        {loading ? "Removing…" : `Remove ${terminology.asset_singular}`}
       </button>
     </div>
   );

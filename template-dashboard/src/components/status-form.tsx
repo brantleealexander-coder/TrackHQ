@@ -256,7 +256,7 @@ export default function StatusForm({ equipment, statuses }: StatusFormProps) {
             placeholder="Job site address (e.g. 1234 Main St, Midland, TX 79701)"
           />
           <p className="text-xs text-gray-400 mt-1">
-            This address will be used to show the unit on the Fleet Map. VisionLink GPS will override this when available.
+            This address will be used to show the unit on the Map. VisionLink GPS will override this when available.
           </p>
         </div>
       )}
