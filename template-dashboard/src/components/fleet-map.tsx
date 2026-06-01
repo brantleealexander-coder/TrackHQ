@@ -291,6 +291,19 @@ export default function FleetMap({
 
       {/* Map */}
       <div className="flex-1 rounded-xl overflow-hidden shadow-sm border border-gray-200">
+        {!process.env.NEXT_PUBLIC_MAPBOX_TOKEN ? (
+          <div className="w-full h-full flex items-center justify-center bg-gray-50 text-center p-8">
+            <div className="max-w-md">
+              <p className="text-sm font-medium text-gray-700 mb-2">Map tiles not configured</p>
+              <p className="text-xs text-gray-500">
+                Set <code className="px-1.5 py-0.5 bg-gray-200 rounded text-[11px]">NEXT_PUBLIC_MAPBOX_TOKEN</code> in <code className="px-1.5 py-0.5 bg-gray-200 rounded text-[11px]">.env.local</code> (or Vercel env vars) with a Mapbox public token (<code className="px-1.5 py-0.5 bg-gray-200 rounded text-[11px]">pk.*</code>) and restart the dev server to enable the fleet map.
+              </p>
+              <p className="mt-3 text-xs text-gray-400">
+                Showing <span className="font-semibold text-gray-600">{units.length}</span> of {fleet.length} units (table view available in the Fleet tab).
+              </p>
+            </div>
+          </div>
+        ) : (
         <MapboxMap
           initialViewState={{
             latitude: 33.5,
@@ -484,6 +497,7 @@ export default function FleetMap({
             </Popup>
           )}
         </MapboxMap>
+        )}
       </div>
     </div>
   );

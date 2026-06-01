@@ -25,12 +25,35 @@
  * the same dev rows (gl_codes are stable like DEV-001, DEV-002, ...).
  */
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { randomBytes } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { parse as parseYaml } from "yaml";
 import { seedAll } from "./lib/seed-core.ts";
+
+/** Load provisioning/.env into process.env (does NOT overwrite already-set vars). */
+function loadDotenv(): void {
+  const path = resolve(__dirname, ".env");
+  if (!existsSync(path)) return;
+  for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    let value = trimmed.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (!(key in process.env) && value.length > 0) {
+      process.env[key] = value;
+    }
+  }
+}
 
 function fail(msg: string): never {
   console.error(`error: ${msg}`);
@@ -354,9 +377,10 @@ Then:
 }
 
 async function main(): Promise<void> {
+  loadDotenv();
   const { manifestPath } = parseArgs();
 
-  const url = process.env.SUPABASE_URL;
+  let url = process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_KEY;
   const anonKey = process.env.SUPABASE_ANON_KEY ?? "";
   if (!url || !serviceKey) {
@@ -365,6 +389,9 @@ async function main(): Promise<void> {
         "Find them in Supabase Dashboard → Project Settings → API."
     );
   }
+  // The Supabase dashboard shows the URL sometimes with /rest/v1/ appended;
+  // supabase-js wants the bare project URL and appends /rest/v1 itself.
+  url = url.replace(/\/+$/, "").replace(/\/rest\/v1$/, "");
   if (!anonKey) {
     console.log(
       "(SUPABASE_ANON_KEY not set — final env-block will leave it blank for you to fill in)"
