@@ -159,7 +159,33 @@ CREATE TABLE IF NOT EXISTS samsara_devices (
 CREATE INDEX IF NOT EXISTS idx_samsara_equipment ON samsara_devices(equipment_id);
 
 -- ─────────────────────────────────────────────
--- 9. Row Level Security
+-- 9. Booking requests (Phase 5e — hosted POS at trackhq.com/book/<slug>)
+-- Public renters request a rental; an operator confirms/rejects later.
+-- The voice agent (Phase 5f) also writes here with source='voice'.
+-- Not the same as rental_history — that's the source-of-truth log of
+-- *confirmed* rentals. Booking requests are pending until acted on.
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS booking_requests (
+  id            BIGSERIAL PRIMARY KEY,
+  equipment_id  BIGINT NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
+  renter_name   TEXT NOT NULL,
+  renter_email  TEXT NOT NULL,
+  renter_phone  TEXT,
+  rental_start  DATE NOT NULL,
+  rental_end    DATE NOT NULL,
+  rate_type     TEXT,
+  notes         TEXT,
+  status        TEXT NOT NULL DEFAULT 'pending',  -- pending | confirmed | rejected
+  source        TEXT NOT NULL DEFAULT 'web',      -- 'web' (POS) | 'voice' (VAPI)
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_booking_requests_equipment ON booking_requests(equipment_id);
+CREATE INDEX IF NOT EXISTS idx_booking_requests_status    ON booking_requests(status);
+CREATE INDEX IF NOT EXISTS idx_booking_requests_created   ON booking_requests(created_at);
+
+-- ─────────────────────────────────────────────
+-- 10. Row Level Security
 -- Disable RLS on all internal-tool tables (this app is behind its own
 -- password gate; the receptionist server uses the service-role key).
 -- ─────────────────────────────────────────────
@@ -171,3 +197,4 @@ ALTER TABLE equipment_status DISABLE ROW LEVEL SECURITY;
 ALTER TABLE rental_history   DISABLE ROW LEVEL SECURITY;
 ALTER TABLE maintenance_logs DISABLE ROW LEVEL SECURITY;
 ALTER TABLE samsara_devices  DISABLE ROW LEVEL SECURITY;
+ALTER TABLE booking_requests DISABLE ROW LEVEL SECURITY;
