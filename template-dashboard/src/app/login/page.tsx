@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { getTenantConfig } from "@/lib/tenant-config";
 
 export default function LoginPage() {
@@ -32,51 +33,91 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-1">
-            {business.name}
-          </p>
-          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+    <div className="grid min-h-screen lg:grid-cols-5">
+      {/* Left: gradient panel with brand + tagline */}
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-700 via-brand-500 to-brand-400 px-12 py-12 text-white lg:col-span-2 lg:flex">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+        >
+          <div className="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute -right-10 bottom-20 h-72 w-72 rounded-full bg-black/20 blur-3xl" />
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="bg-gray-800 rounded-xl p-8 space-y-5 shadow-xl"
-        >
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-300 mb-2"
-            >
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoFocus
-              className="w-full px-4 py-2.5 rounded-lg bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter dashboard password"
-            />
+        <Link href="/" className="relative inline-flex items-center gap-2 text-base font-semibold">
+          <span aria-hidden className="inline-block h-7 w-7 rounded bg-white/15 backdrop-blur" />
+          TrackHQ
+        </Link>
+
+        <div className="relative">
+          <p className="text-xs font-semibold uppercase tracking-widest text-white/70">
+            {business.name}
+          </p>
+          <p className="mt-4 text-3xl font-semibold tracking-tight">
+            One screen for every rental, every yard, every dollar.
+          </p>
+          <p className="mt-3 text-sm text-white/80">
+            Sign in to manage your fleet, log maintenance, and check the day&apos;s revenue.
+          </p>
+        </div>
+
+        <p className="relative text-xs text-white/60">
+          Built for rental businesses. Hosted by TrackHQ.
+        </p>
+      </aside>
+
+      {/* Right: form */}
+      <main className="flex items-center justify-center bg-white px-6 py-16 lg:col-span-3">
+        <div className="w-full max-w-sm">
+          <div className="lg:hidden mb-8">
+            <Link href="/" className="inline-flex items-center gap-2 text-base font-semibold text-gray-900">
+              <span aria-hidden className="inline-block h-6 w-6 rounded bg-gradient-to-br from-brand-500 to-brand-700" />
+              TrackHQ
+            </Link>
           </div>
 
-          {error && (
-            <p className="text-sm text-red-400">{error}</p>
-          )}
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Sign in</h1>
+          <p className="mt-1.5 text-sm text-gray-500">
+            Enter your dashboard password.
+          </p>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium transition-colors"
-          >
-            {loading ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
-      </div>
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoFocus
+                className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                placeholder="••••••••"
+              />
+            </div>
+
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-gray-900 px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-800 disabled:opacity-50"
+            >
+              {loading ? "Signing in…" : "Sign in →"}
+            </button>
+          </form>
+
+          <p className="mt-8 text-center text-xs text-gray-500">
+            Need access? <Link href="/contact" className="font-medium text-gray-700 hover:text-gray-900">Contact your operator.</Link>
+          </p>
+        </div>
+      </main>
     </div>
   );
 }
