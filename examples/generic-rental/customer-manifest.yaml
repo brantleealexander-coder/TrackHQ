@@ -1,0 +1,75 @@
+# Generic Rental — the default demo manifest for dev-bootstrap.
+#
+# Models a mixed-vertical rental business (heavy equipment + boats +
+# event rentals + cars) so localhost demos look right for any prospect
+# walking through TrackHQ, not just a heavy-equipment-only shop.
+#
+# Crossmar's vertical-specific manifest is still callable via
+# `npm run dev-bootstrap --manifest=examples/crossmar/customer-manifest.yaml`.
+
+slug: generic-rental
+business_name: Sunset Rentals
+brand_color: "#1e40af"
+logo_url: ""
+site_title: "Sunset Rentals"
+
+contact:
+  phone: "+15125550100"
+  email: hello@sunsetrentals.example
+  website: https://sunsetrentals.example
+
+features:
+  visionlink: false
+  samsara: false
+  quickbooks: false
+  chatbot: false
+
+provisioning:
+  github_owner: null
+  supabase_org_id: null
+  supabase_region: null
+  vercel_team_id: null
+  railway_team_id: null
+  domain: null
+  twilio_area_code: "512"
+
+initial_data:
+  categories:
+    - Heavy Equipment
+    - Watercraft
+    - Event Rentals
+    - Vehicles
+
+  statuses:
+    - { key: on_rent,    name: "On Rent",        color: "#22c55e", behavior: rented,         sort_order: 10 }
+    - { key: available,  name: "Available",      color: "#3b82f6", behavior: available,      sort_order: 20 }
+    - { key: reserved,   name: "Reserved",       color: "#f59e0b", behavior: reserved,       sort_order: 30 }
+    - { key: in_service, name: "In Maintenance", color: "#f97316", behavior: out_of_service, sort_order: 40 }
+    - { key: down,       name: "Down",           color: "#ef4444", behavior: out_of_service, sort_order: 50 }
+
+  locations:
+    - { name: "Main Yard",  address: "100 Lakeside Dr, Austin, TX 78701",  latitude: 30.2672, longitude: -97.7431 }
+    - { name: "South Lot",  address: "550 Riverside Way, San Marcos, TX 78666", latitude: 29.8833, longitude: -97.9414 }
+
+# Equipment + sample customers used by provisioning/dev-bootstrap.ts to
+# populate a freshly-schemad Supabase project with demo content.
+demo_data:
+  equipment:
+    - { gl_code: "GEN-001", serial: "CAT3140-A",   category: "Heavy Equipment", name: "CAT 314 Excavator",          year: 2021, rate_daily: 450, rate_weekly: 1800, rate_monthly: 5400, home_location: "Main Yard",  status: on_rent,   customer: "Acme Construction" }
+    - { gl_code: "GEN-002", serial: "JD310SL-B",   category: "Heavy Equipment", name: "John Deere 310 Backhoe",     year: 2020, rate_daily: 280, rate_weekly: 1120, rate_monthly: 3360, home_location: "Main Yard",  status: available }
+    - { gl_code: "GEN-003", serial: "BAYDX22-A",   category: "Watercraft",      name: "2024 Bayliner DX2200",       year: 2024, rate_daily: 525, rate_weekly: 2625, rate_monthly: null, home_location: "South Lot", status: reserved,  customer: "Sarah Park" }
+    - { gl_code: "GEN-004", serial: "SPARK3UP-A",  category: "Watercraft",      name: "2023 Sea-Doo Spark 3-Up",    year: 2023, rate_daily: 195, rate_weekly: 950,  rate_monthly: null, home_location: "South Lot", status: on_rent,   customer: "Sarah Park" }
+    - { gl_code: "GEN-005", serial: "TENT3060-A",  category: "Event Rentals",   name: "30x60 Frame Tent",           year: 2022, rate_daily: 480, rate_weekly: 1920, rate_monthly: null, home_location: "Main Yard",  status: available }
+    - { gl_code: "GEN-006", serial: "TENT2040-A",  category: "Event Rentals",   name: "20x40 Pole Tent",            year: 2022, rate_daily: 240, rate_weekly: 960,  rate_monthly: null, home_location: "Main Yard",  status: available }
+    - { gl_code: "GEN-007", serial: "CHAIRS-A100", category: "Event Rentals",   name: "Folding Chairs (100-pack)",   year: 2023, rate_daily: 75,  rate_weekly: 300,  rate_monthly: null, home_location: "Main Yard",  status: on_rent,   customer: "Dallas Events Co" }
+    - { gl_code: "GEN-008", serial: "TABLE6FT-10", category: "Event Rentals",   name: "6ft Banquet Tables (10-pack)", year: 2023, rate_daily: 60,  rate_weekly: 240,  rate_monthly: null, home_location: "Main Yard",  status: on_rent,   customer: "Dallas Events Co" }
+    - { gl_code: "GEN-009", serial: "BMW5-WBA1",   category: "Vehicles",        name: "2023 BMW 5-Series",          year: 2023, rate_daily: 185, rate_weekly: 1110, rate_monthly: 3700, home_location: "Main Yard",  status: available }
+    - { gl_code: "GEN-010", serial: "TRANSIT-350", category: "Vehicles",        name: "2024 Ford Transit 350",      year: 2024, rate_daily: 145, rate_weekly: 870,  rate_monthly: 2900, home_location: "Main Yard",  status: on_rent,   customer: "Acme Construction" }
+    - { gl_code: "GEN-011", serial: "TESLA3-A",    category: "Vehicles",        name: "2022 Tesla Model 3",         year: 2022, rate_daily: 165, rate_weekly: 990,  rate_monthly: 3300, home_location: "Main Yard",  status: in_service }
+    - { gl_code: "GEN-012", serial: "SUB22-CHEV",  category: "Vehicles",        name: "2023 Chevrolet Suburban",    year: 2023, rate_daily: 225, rate_weekly: 1350, rate_monthly: 4500, home_location: "South Lot", status: available }
+
+  customers:
+    - { name: "Sarah Park",          email: "sarah.park@example.com",     phone: "+15125550101", company: null }
+    - { name: "Mike Chen",           email: "mike.chen@example.com",      phone: "+15125550102", company: null }
+    - { name: "Acme Construction",   email: "ops@acme-construction.com",  phone: "+15125550103", company: "Acme Construction LLC" }
+    - { name: "Dallas Events Co",    email: "rentals@dallasevents.com",   phone: "+12145550104", company: "Dallas Events Co" }

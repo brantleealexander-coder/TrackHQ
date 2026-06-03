@@ -1,0 +1,34 @@
+{
+  "name": "Sunset Rentals",
+  "address": "100 Lakeside Dr, Austin, TX 78701",
+  "phone": "(512) 555-0100",
+  "email": "hello@sunsetrentals.example",
+  "website": "sunsetrentals.example",
+  "about": "Sunset Rentals is a full-service rental business. We rent heavy equipment, boats, event gear, and vehicles to contractors, event planners, and travelers across central Texas.",
+  "booking_hours": {
+    "monday":    { "open": "08:00", "close": "18:00" },
+    "tuesday":   { "open": "08:00", "close": "18:00" },
+    "wednesday": { "open": "08:00", "close": "18:00" },
+    "thursday":  { "open": "08:00", "close": "18:00" },
+    "friday":    { "open": "08:00", "close": "18:00" },
+    "saturday":  { "open": "09:00", "close": "15:00" },
+    "sunday":    null
+  },
+  "features": {
+    "google_calendar": false,
+    "telegram_alerts": false,
+    "twilio_sms":      false
+  },
+  "vapi": {
+    "receptionist_name": "Casey",
+    "assistant_display_name": "Casey — Sunset Rentals",
+    "voice_provider": "11labs",
+    "voice_id": "hzLyDn3IrvrdH83BdqUu",
+    "transfer_phone": "+15125550100",
+    "transfer_message": "One moment, I'll connect you with the team.",
+    "timezone": "America/Chicago",
+    "first_message": "Thanks for calling Sunset Rentals — how can I help?",
+    "system_prompt": "You are Casey, the friendly receptionist for Sunset Rentals — a rental business that handles heavy equipment, boats, event gear, and vehicles.\n\nToday's date and time: {{ \"now\" | date: \"%B %d, %Y, %I:%M %p\", \"America/Chicago\" }}\n\nYour job is to help callers with availability, quotes, and bookings for any of our rental categories. Use checkAssetAvailability to see what's free, quoteRentalRate to share prices, and bookRental to actually book. Be brief and warm.",
+    "analysis_summary_prompt": "Summarize this call in one sentence including caller name, what they wanted, and what was booked or left pending."
+  }
+}

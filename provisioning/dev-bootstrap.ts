@@ -12,17 +12,19 @@
  *   cd provisioning
  *   npx tsx dev-bootstrap.ts
  *
- *   Defaults to examples/crossmar/customer-manifest.yaml for the taxonomy.
- *   Pass `--manifest=<path>` to use a different one.
+ *   Defaults to examples/generic-rental/customer-manifest.yaml. Pass
+ *   `--manifest=<path>` to use a different one (e.g. examples/crossmar/).
  *
  * What it does:
- *   - Seeds categories / statuses / locations from the manifest's initial_data
- *   - Inserts 10 fake equipment rows + statuses across DFW lat/lng so the
- *     fleet table + map have something visible
- *   - Prints the .env.local block for template-dashboard/ so you can paste it
+ *   - Seeds categories / statuses / locations from manifest.initial_data
+ *   - Seeds equipment + equipment_status from manifest.demo_data.equipment
+ *   - Seeds customers from manifest.demo_data.customers
+ *   - Generates a couple of demo orders + order_lines so the Phase 6
+ *     dashboard/calendar/orders pages have content on first load
+ *   - Prints the .env.local block for template-dashboard/
  *
  * Idempotent: re-running with the same Supabase URL upserts/overwrites
- * the same dev rows (gl_codes are stable like DEV-001, DEV-002, ...).
+ * the same dev rows (gl_codes are stable like DEV-001 / GEN-001).
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -66,7 +68,7 @@ function parseArgs(): { manifestPath: string } {
     __dirname,
     "..",
     "examples",
-    "crossmar",
+    "generic-rental",
     "customer-manifest.yaml"
   );
   for (const a of args) {
@@ -79,172 +81,44 @@ function parseArgs(): { manifestPath: string } {
 
 const __dirname = new URL(".", import.meta.url).pathname.replace(/^\//, "");
 
-interface FakeUnit {
+interface ManifestEquipment {
   gl_code: string;
-  serial_number: string;
-  category_name: string;
-  equipment_name: string;
+  serial: string;
+  category: string;
+  name: string;
   year: number;
-  rate_daily: number;
-  rate_weekly: number;
-  rate_monthly: number;
-  home_location_name?: string;
+  rate_daily: number | null;
+  rate_weekly: number | null;
+  rate_monthly: number | null;
+  home_location?: string;
   current_lat?: number;
   current_lng?: number;
   current_address?: string;
-  status_key: string;
-  customer_name?: string;
+  status: string;
+  customer?: string;
   rental_end?: string;
 }
 
-// Lat/lng cluster around DFW / North Texas — overlaps Crossmar's actual
-// territory so the map visualization looks reasonable.
-const FAKE_UNITS: FakeUnit[] = [
-  {
-    gl_code: "DEV-001",
-    serial_number: "CAT3140",
-    category_name: "Excavators",
-    equipment_name: "CAT 314 Excavator",
-    year: 2021,
-    rate_daily: 450,
-    rate_weekly: 1800,
-    rate_monthly: 5400,
-    current_lat: 32.7767,
-    current_lng: -96.7970,
-    current_address: "Construction site, Dallas, TX",
-    status_key: "on_rent",
-    customer_name: "BlueLine Construction",
-    rental_end: "2026-06-30",
-  },
-  {
-    gl_code: "DEV-002",
-    serial_number: "JD310SL",
-    category_name: "Backhoe Loader",
-    equipment_name: "John Deere 310SL",
-    year: 2020,
-    rate_daily: 280,
-    rate_weekly: 1120,
-    rate_monthly: 3360,
-    home_location_name: "Texas (Tioga)",
-    status_key: "available",
-  },
-  {
-    gl_code: "DEV-003",
-    serial_number: "CAT299D3",
-    category_name: "Skid Steer",
-    equipment_name: "CAT 299D3 Skid Steer",
-    year: 2022,
-    rate_daily: 350,
-    rate_weekly: 1400,
-    rate_monthly: 4200,
-    home_location_name: "Arkansas",
-    status_key: "in_service",
-  },
-  {
-    gl_code: "DEV-004",
-    serial_number: "BOMAG120",
-    category_name: "Compactor",
-    equipment_name: "Bomag BW120 Roller",
-    year: 2019,
-    rate_daily: 195,
-    rate_weekly: 780,
-    rate_monthly: 2340,
-    current_lat: 33.0198,
-    current_lng: -96.6989,
-    current_address: "Plano TX job site",
-    status_key: "on_rent",
-    customer_name: "Plano Earthworks",
-    rental_end: "2026-05-25",
-  },
-  {
-    gl_code: "DEV-005",
-    serial_number: "GENIES65",
-    category_name: "Lifts",
-    equipment_name: "Genie S-65 Boom Lift",
-    year: 2021,
-    rate_daily: 240,
-    rate_weekly: 960,
-    rate_monthly: 2880,
-    home_location_name: "Midland, TX",
-    status_key: "reserved",
-    customer_name: "Quanta Energy",
-  },
-  {
-    gl_code: "DEV-006",
-    serial_number: "PETERBILT579",
-    category_name: "Water Trucks",
-    equipment_name: "Peterbilt 579 Water Truck",
-    year: 2018,
-    rate_daily: 320,
-    rate_weekly: 1280,
-    rate_monthly: 3840,
-    home_location_name: "Texas (Tioga)",
-    status_key: "available",
-  },
-  {
-    gl_code: "DEV-007",
-    serial_number: "CAT745",
-    category_name: "Articulating Trucks",
-    equipment_name: "CAT 745 Articulating Truck",
-    year: 2020,
-    rate_daily: 520,
-    rate_weekly: 2080,
-    rate_monthly: 6240,
-    current_lat: 32.025369,
-    current_lng: -101.908339,
-    current_address: "Midland Basin pad #7",
-    status_key: "on_rent",
-    customer_name: "Permian Drilling Co.",
-    rental_end: "2026-08-15",
-  },
-  {
-    gl_code: "DEV-008",
-    serial_number: "KOMATSU155",
-    category_name: "Dozers",
-    equipment_name: "Komatsu D155 Dozer",
-    year: 2017,
-    rate_daily: 480,
-    rate_weekly: 1920,
-    rate_monthly: 5760,
-    home_location_name: "Arkansas",
-    status_key: "down",
-  },
-  {
-    gl_code: "DEV-009",
-    serial_number: "JLG1255",
-    category_name: "Telehandler",
-    equipment_name: "JLG 1255 Telehandler",
-    year: 2022,
-    rate_daily: 380,
-    rate_weekly: 1520,
-    rate_monthly: 4560,
-    home_location_name: "Texas (Tioga)",
-    status_key: "off_rent_pending",
-    customer_name: "Frisco Builders LLC",
-  },
-  {
-    gl_code: "DEV-010",
-    serial_number: "FREUHAUF40",
-    category_name: "Trailers",
-    equipment_name: "Fruehauf 40' Lowboy Trailer",
-    year: 2016,
-    rate_daily: 150,
-    rate_weekly: 600,
-    rate_monthly: 1800,
-    home_location_name: "Texas (Tioga)",
-    status_key: "available",
-  },
-];
+interface ManifestCustomer {
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  company?: string | null;
+}
+
+interface DemoData {
+  equipment?: ManifestEquipment[];
+  customers?: ManifestCustomer[];
+}
 
 interface ManifestShape {
   business_name?: string;
   brand_color?: string;
   initial_data?: Parameters<typeof seedAll>[1];
+  demo_data?: DemoData;
 }
 
 async function verifySchemaApplied(supabase: SupabaseClient): Promise<void> {
-  // Probe the categories table. If schema is missing, supabase-js returns
-  // a PGRST error mentioning "relation does not exist".
   const { error } = await supabase.from("categories").select("id").limit(1);
   if (error) {
     if (error.message.includes("does not exist") || error.code === "42P01") {
@@ -256,30 +130,35 @@ async function verifySchemaApplied(supabase: SupabaseClient): Promise<void> {
     }
     fail(`schema check failed: ${error.message}`);
   }
+
+  // Phase 6a: also probe for the new tables so a partially-migrated fork
+  // fails fast instead of silently skipping the order/customer seed.
+  const { error: customersErr } = await supabase.from("customers").select("id").limit(1);
+  if (customersErr && (customersErr.message.includes("does not exist") || customersErr.code === "42P01")) {
+    fail(
+      `Phase 6a tables missing (customers/orders/...). Re-paste the latest\n` +
+        `template-dashboard/supabase_schema.sql into the Supabase SQL Editor.`
+    );
+  }
 }
 
-async function insertFakeEquipment(
-  supabase: SupabaseClient
-): Promise<void> {
-  // Look up category / location / status keys
-  const { data: cats, error: catsErr } = await supabase
-    .from("categories")
-    .select("id, name");
+async function insertEquipment(
+  supabase: SupabaseClient,
+  units: ManifestEquipment[]
+): Promise<Map<string, number>> {
+  const { data: cats, error: catsErr } = await supabase.from("categories").select("id, name");
   if (catsErr) fail(`reading categories: ${catsErr.message}`);
   const catByName = new Map((cats ?? []).map((c) => [c.name, c.id as number]));
 
-  const { data: locs, error: locsErr } = await supabase
-    .from("locations")
-    .select("id, name");
+  const { data: locs, error: locsErr } = await supabase.from("locations").select("id, name");
   if (locsErr) fail(`reading locations: ${locsErr.message}`);
   const locByName = new Map((locs ?? []).map((l) => [l.name, l.id as number]));
 
-  console.log(`\ninserting ${FAKE_UNITS.length} fake equipment rows...`);
+  console.log(`\ninserting ${units.length} equipment rows from manifest...`);
 
-  // Filter out units whose category isn't seeded — manifest taxonomy varies.
-  const present = FAKE_UNITS.filter((u) => {
-    if (!catByName.has(u.category_name)) {
-      console.log(`  skipping ${u.gl_code} (category "${u.category_name}" not in manifest)`);
+  const present = units.filter((u) => {
+    if (!catByName.has(u.category)) {
+      console.log(`  skipping ${u.gl_code} (category "${u.category}" not in manifest)`);
       return false;
     }
     return true;
@@ -287,16 +166,14 @@ async function insertFakeEquipment(
 
   const equipmentRows = present.map((u) => ({
     gl_code: u.gl_code,
-    serial_number: u.serial_number,
-    category_id: catByName.get(u.category_name)!,
-    equipment_name: u.equipment_name,
+    serial_number: u.serial,
+    category_id: catByName.get(u.category)!,
+    equipment_name: u.name,
     year: u.year,
     rate_daily: u.rate_daily,
     rate_weekly: u.rate_weekly,
     rate_monthly: u.rate_monthly,
-    home_location_id: u.home_location_name
-      ? (locByName.get(u.home_location_name) ?? null)
-      : null,
+    home_location_id: u.home_location ? (locByName.get(u.home_location) ?? null) : null,
     current_address: u.current_address ?? null,
     current_lat: u.current_lat ?? null,
     current_lng: u.current_lng ?? null,
@@ -312,19 +189,167 @@ async function insertFakeEquipment(
   const idByGl = new Map((inserted ?? []).map((r) => [r.gl_code, r.id as number]));
   const statusRows = present.map((u) => ({
     equipment_id: idByGl.get(u.gl_code)!,
-    status: u.status_key,
-    customer_name: u.customer_name ?? null,
+    status: u.status,
+    customer_name: u.customer ?? null,
     rental_end: u.rental_end ?? null,
     rate_type: u.rental_end ? "monthly" : null,
   }));
 
-  // equipment_status has a UNIQUE constraint on equipment_id, so this is also
-  // an idempotent upsert.
   const { error: statErr } = await supabase
     .from("equipment_status")
     .upsert(statusRows, { onConflict: "equipment_id" });
   if (statErr) fail(`equipment_status upsert: ${statErr.message}`);
   console.log(`  upserted ${statusRows.length} equipment_status rows`);
+
+  return idByGl;
+}
+
+async function insertCustomers(
+  supabase: SupabaseClient,
+  customers: ManifestCustomer[]
+): Promise<Map<string, number>> {
+  if (customers.length === 0) return new Map();
+
+  console.log(`\ninserting ${customers.length} demo customers...`);
+
+  // No unique constraint on email at the schema level (so voice flows can
+  // insert with no email), but for the dev seed we dedupe by name before
+  // upserting so re-runs don't pile up duplicates.
+  const { data: existing, error: existErr } = await supabase
+    .from("customers")
+    .select("id, name");
+  if (existErr) fail(`reading customers: ${existErr.message}`);
+  const idByName = new Map<string, number>(
+    (existing ?? []).map((c) => [c.name, c.id as number])
+  );
+
+  const toInsert = customers
+    .filter((c) => !idByName.has(c.name))
+    .map((c) => ({
+      name: c.name,
+      email: c.email ?? null,
+      phone: c.phone ?? null,
+      company: c.company ?? null,
+    }));
+
+  if (toInsert.length > 0) {
+    const { data: inserted, error: insErr } = await supabase
+      .from("customers")
+      .insert(toInsert)
+      .select("id, name");
+    if (insErr) fail(`customer insert: ${insErr.message}`);
+    for (const c of inserted ?? []) {
+      idByName.set(c.name, c.id as number);
+    }
+    console.log(`  inserted ${inserted?.length ?? 0} new customers`);
+  } else {
+    console.log(`  all customers already present — no-op`);
+  }
+
+  return idByName;
+}
+
+function isoDate(offsetDays: number): string {
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  d.setUTCDate(d.getUTCDate() + offsetDays);
+  return d.toISOString().slice(0, 10);
+}
+
+async function insertDemoOrders(
+  supabase: SupabaseClient,
+  units: ManifestEquipment[],
+  equipmentIdByGl: Map<string, number>,
+  customerIdByName: Map<string, number>
+): Promise<void> {
+  if (customerIdByName.size === 0) return;
+
+  // Build orders from manifest equipment that already names a customer:
+  //   status=on_rent   → active order, started 7 days ago, ends in 14
+  //   status=reserved  → upcoming order, starts in 7 days, ends in 21
+  // One order per (customer, status) bucket; multiple equipment for the
+  // same customer get bundled into one multi-line order so the demo
+  // shows off the Booqable-style "one order = many assets" pattern.
+
+  const buckets = new Map<string, { customer: string; status: string; lines: ManifestEquipment[] }>();
+  for (const u of units) {
+    if (!u.customer) continue;
+    if (!customerIdByName.has(u.customer)) continue;
+    if (!equipmentIdByGl.has(u.gl_code)) continue;
+    if (u.status !== "on_rent" && u.status !== "reserved") continue;
+    const key = `${u.customer}::${u.status}`;
+    if (!buckets.has(key)) buckets.set(key, { customer: u.customer, status: u.status, lines: [] });
+    buckets.get(key)!.lines.push(u);
+  }
+
+  if (buckets.size === 0) {
+    console.log(`\nno demo orders to generate (no equipment has a customer + on_rent/reserved status)`);
+    return;
+  }
+
+  console.log(`\ninserting ${buckets.size} demo orders...`);
+
+  // Check if any orders are already seeded so we can avoid duplicating on
+  // re-runs. Anchored on a sentinel notes prefix per (customer, status).
+  const { data: existingOrders } = await supabase
+    .from("orders")
+    .select("id, notes")
+    .like("notes", "demo-seed::%");
+  const seenSentinels = new Set<string>(
+    (existingOrders ?? []).map((o) => (o.notes as string) ?? "")
+  );
+
+  for (const { customer, status, lines } of buckets.values()) {
+    const sentinel = `demo-seed::${customer}::${status}`;
+    if (seenSentinels.has(sentinel)) {
+      console.log(`  skipping ${sentinel} (already seeded)`);
+      continue;
+    }
+
+    const isActive = status === "on_rent";
+    const rentalStart = isoDate(isActive ? -7 : 7);
+    const rentalEnd = isoDate(isActive ? 14 : 21);
+    const orderStatus = isActive ? "active" : "upcoming";
+    const days = isActive ? 21 : 14;
+    const total = lines.reduce(
+      (sum, l) => sum + (l.rate_daily ?? 0) * days,
+      0
+    );
+
+    const { data: orderRow, error: orderErr } = await supabase
+      .from("orders")
+      .insert({
+        customer_id: customerIdByName.get(customer)!,
+        status: orderStatus,
+        rental_start: rentalStart,
+        rental_end: rentalEnd,
+        total,
+        source: "operator",
+        notes: sentinel,
+      })
+      .select("id")
+      .single();
+    if (orderErr) {
+      console.warn(`  order insert failed for ${customer}/${status}: ${orderErr.message}`);
+      continue;
+    }
+
+    const orderLines = lines.map((l) => ({
+      order_id: orderRow.id as number,
+      equipment_id: equipmentIdByGl.get(l.gl_code)!,
+      rate_type: "daily",
+      rate_amount: l.rate_daily,
+      line_total: (l.rate_daily ?? 0) * days,
+    }));
+
+    const { error: lineErr } = await supabase.from("order_lines").insert(orderLines);
+    if (lineErr) {
+      console.warn(`  order_lines insert failed for order ${orderRow.id}: ${lineErr.message}`);
+      continue;
+    }
+
+    console.log(`  order ${orderRow.id}: ${customer} · ${orderStatus} · ${lines.length} line(s) · $${total.toLocaleString()}`);
+  }
 }
 
 function generateCookieSecret(): string {
@@ -339,10 +364,10 @@ function emitEnvLocalBlock(
 ): void {
   const tenantConfig = JSON.stringify({
     business: {
-      name: manifest.business_name ?? "Fleet Operator",
+      name: manifest.business_name ?? "Rental Operator",
       logo_url: "",
-      brand_color: manifest.brand_color ?? "#f97316",
-      site_title: "Fleet Dashboard (dev)",
+      brand_color: manifest.brand_color ?? "#1e40af",
+      site_title: manifest.business_name ?? "TrackHQ",
     },
     features: {
       visionlink: false,
@@ -389,8 +414,6 @@ async function main(): Promise<void> {
         "Find them in Supabase Dashboard → Project Settings → API."
     );
   }
-  // The Supabase dashboard shows the URL sometimes with /rest/v1/ appended;
-  // supabase-js wants the bare project URL and appends /rest/v1 itself.
   url = url.replace(/\/+$/, "").replace(/\/rest\/v1$/, "");
   if (!anonKey) {
     console.log(
@@ -415,7 +438,15 @@ async function main(): Promise<void> {
   console.log("seeding taxonomies:");
   await seedAll(supabase, manifest.initial_data);
 
-  await insertFakeEquipment(supabase);
+  const demo = manifest.demo_data ?? {};
+  const equipmentIdByGl = await insertEquipment(supabase, demo.equipment ?? []);
+  const customerIdByName = await insertCustomers(supabase, demo.customers ?? []);
+  await insertDemoOrders(
+    supabase,
+    demo.equipment ?? [],
+    equipmentIdByGl,
+    customerIdByName
+  );
 
   emitEnvLocalBlock(url, serviceKey, anonKey || "<paste-your-anon-key>", manifest);
 }

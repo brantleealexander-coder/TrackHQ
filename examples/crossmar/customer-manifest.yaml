@@ -74,3 +74,26 @@ initial_data:
     - { name: "Arkansas",       address: "2500 NE 11th St, Bentonville, AR 72712", latitude: 36.386546, longitude: -94.180629 }
     - { name: "Texas (Tioga)",  address: "100 Bodovsky Rd, Tioga, TX 76271",       latitude: 33.47083,  longitude: -96.86169 }
     - { name: "Midland, TX",    address: "10315 FM 307, Midland, TX 79706",        latitude: 32.025369, longitude: -101.908339 }
+
+# Heavy-equipment demo catalog used by provisioning/dev-bootstrap.ts when
+# Crossmar is the chosen manifest. Mirrors the 10 units that were previously
+# hardcoded as FAKE_UNITS in dev-bootstrap.ts.
+demo_data:
+  equipment:
+    - { gl_code: "DEV-001", serial: "CAT3140",     category: "Excavators",         name: "CAT 314 Excavator",          year: 2021, rate_daily: 450, rate_weekly: 1800, rate_monthly: 5400, current_lat: 32.7767,   current_lng: -96.7970,    current_address: "Construction site, Dallas, TX", status: on_rent,          customer: "BlueLine Construction", rental_end: "2026-06-30" }
+    - { gl_code: "DEV-002", serial: "JD310SL",     category: "Backhoe Loader",     name: "John Deere 310SL",           year: 2020, rate_daily: 280, rate_weekly: 1120, rate_monthly: 3360, home_location: "Texas (Tioga)", status: available }
+    - { gl_code: "DEV-003", serial: "CAT299D3",    category: "Skid Steer",         name: "CAT 299D3 Skid Steer",       year: 2022, rate_daily: 350, rate_weekly: 1400, rate_monthly: 4200, home_location: "Arkansas",      status: in_service }
+    - { gl_code: "DEV-004", serial: "BOMAG120",    category: "Compactor",          name: "Bomag BW120 Roller",         year: 2019, rate_daily: 195, rate_weekly: 780,  rate_monthly: 2340, current_lat: 33.0198,   current_lng: -96.6989,    current_address: "Plano TX job site",          status: on_rent,          customer: "Plano Earthworks",      rental_end: "2026-05-25" }
+    - { gl_code: "DEV-005", serial: "GENIES65",    category: "Lifts",              name: "Genie S-65 Boom Lift",       year: 2021, rate_daily: 240, rate_weekly: 960,  rate_monthly: 2880, home_location: "Midland, TX",   status: reserved,         customer: "Quanta Energy" }
+    - { gl_code: "DEV-006", serial: "PETERBILT579",category: "Water Trucks",       name: "Peterbilt 579 Water Truck",  year: 2018, rate_daily: 320, rate_weekly: 1280, rate_monthly: 3840, home_location: "Texas (Tioga)", status: available }
+    - { gl_code: "DEV-007", serial: "CAT745",      category: "Articulating Trucks", name: "CAT 745 Articulating Truck", year: 2020, rate_daily: 520, rate_weekly: 2080, rate_monthly: 6240, current_lat: 32.025369, current_lng: -101.908339, current_address: "Midland Basin pad #7",       status: on_rent,          customer: "Permian Drilling Co.",  rental_end: "2026-08-15" }
+    - { gl_code: "DEV-008", serial: "KOMATSU155",  category: "Dozers",             name: "Komatsu D155 Dozer",         year: 2017, rate_daily: 480, rate_weekly: 1920, rate_monthly: 5760, home_location: "Arkansas",      status: down }
+    - { gl_code: "DEV-009", serial: "JLG1255",     category: "Telehandler",        name: "JLG 1255 Telehandler",       year: 2022, rate_daily: 380, rate_weekly: 1520, rate_monthly: 4560, home_location: "Texas (Tioga)", status: off_rent_pending, customer: "Frisco Builders LLC" }
+    - { gl_code: "DEV-010", serial: "FREUHAUF40",  category: "Trailers",           name: "Fruehauf 40' Lowboy Trailer", year: 2016, rate_daily: 150, rate_weekly: 600,  rate_monthly: 1800, home_location: "Texas (Tioga)", status: available }
+
+  customers:
+    - { name: "BlueLine Construction", email: "ops@blueline-construction.example",  phone: "+12145550010", company: "BlueLine Construction LLC" }
+    - { name: "Plano Earthworks",      email: "dispatch@plano-earthworks.example",  phone: "+19725550020", company: "Plano Earthworks Inc" }
+    - { name: "Quanta Energy",         email: "rentals@quanta-energy.example",      phone: "+18325550030", company: "Quanta Energy Services" }
+    - { name: "Permian Drilling Co.",  email: "logistics@permian-drilling.example", phone: "+14325550040", company: "Permian Drilling Co." }
+    - { name: "Frisco Builders LLC",   email: "ops@frisco-builders.example",        phone: "+19725550050", company: "Frisco Builders LLC" }
