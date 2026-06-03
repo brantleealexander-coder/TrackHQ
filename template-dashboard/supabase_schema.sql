@@ -185,16 +185,133 @@ CREATE INDEX IF NOT EXISTS idx_booking_requests_status    ON booking_requests(st
 CREATE INDEX IF NOT EXISTS idx_booking_requests_created   ON booking_requests(created_at);
 
 -- ─────────────────────────────────────────────
--- 10. Row Level Security
+-- 10. Customers (Phase 6 — CRM source of truth)
+-- One row per real-world renter. The hosted POS, voice agent, and
+-- operator's New Order flow all dedupe/insert here by email (or phone
+-- when email is empty). Replaces the denormalized customer_name TEXT
+-- pattern on equipment_status / rental_history (those columns stay for
+-- back-compat; new writes set customer_id and copy name for legacy reads).
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS customers (
+  id          BIGSERIAL PRIMARY KEY,
+  name        TEXT NOT NULL,
+  email       TEXT,
+  phone       TEXT,
+  company     TEXT,
+  address     TEXT,
+  notes       TEXT,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Dedupe lookups go through lower(email) so case doesn't matter; nullable
+-- partial-unique would be cleaner but we leave dedup to application code
+-- so the voice flow can still insert when email is empty.
+CREATE INDEX IF NOT EXISTS idx_customers_email_lower ON customers(LOWER(email)) WHERE email IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_customers_phone       ON customers(phone)        WHERE phone IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_customers_name        ON customers(name);
+
+-- ─────────────────────────────────────────────
+-- 11. Orders (Phase 6 — Booqable-style multi-asset orders)
+-- One order = one customer + dates + many assets (order_lines).
+-- Distinct from booking_requests: requests are pending intent from the
+-- public POS / voice; orders are committed bookings (status changes
+-- equipment_status to 'on_rent' on activation).
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS orders (
+  id                   BIGSERIAL PRIMARY KEY,
+  customer_id          BIGINT NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
+  status               TEXT NOT NULL DEFAULT 'upcoming',
+                       -- upcoming | active | completed | cancelled
+  rental_start         DATE NOT NULL,
+  rental_end           DATE NOT NULL,
+  total                NUMERIC(10,2),
+  source               TEXT NOT NULL DEFAULT 'operator',
+                       -- operator | web | voice
+  booking_request_id   BIGINT REFERENCES booking_requests(id) ON DELETE SET NULL,
+  notes                TEXT,
+  created_at           TIMESTAMPTZ DEFAULT NOW(),
+  updated_at           TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT orders_status_check CHECK (
+    status IN ('upcoming','active','completed','cancelled')
+  ),
+  CONSTRAINT orders_dates_check CHECK (rental_end >= rental_start)
+);
+
+CREATE INDEX IF NOT EXISTS idx_orders_customer        ON orders(customer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status_start    ON orders(status, rental_start);
+CREATE INDEX IF NOT EXISTS idx_orders_booking_request ON orders(booking_request_id) WHERE booking_request_id IS NOT NULL;
+
+-- ─────────────────────────────────────────────
+-- 12. Order lines (one row per asset on an order)
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS order_lines (
+  id            BIGSERIAL PRIMARY KEY,
+  order_id      BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  equipment_id  BIGINT NOT NULL REFERENCES equipment(id) ON DELETE RESTRICT,
+  rate_type     TEXT NOT NULL,                       -- daily | weekly | monthly
+  rate_amount   NUMERIC(10,2),                       -- snapshot of rate at booking time
+  line_total    NUMERIC(10,2),
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_lines_order     ON order_lines(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_lines_equipment ON order_lines(equipment_id);
+
+-- ─────────────────────────────────────────────
+-- 13. Documents (Phase 6 — tenant-wide template library + per-order attachments)
+-- File lives in Supabase Storage (bucket: tenant-documents); this table
+-- holds metadata + the storage_path. order_attachments joins documents
+-- to orders so the same template (e.g. rental_agreement.pdf) can be
+-- attached to many orders.
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS documents (
+  id            BIGSERIAL PRIMARY KEY,
+  name          TEXT NOT NULL,
+  description   TEXT,
+  storage_path  TEXT NOT NULL,                       -- key inside tenant-documents bucket
+  mime_type     TEXT NOT NULL,
+  size_bytes    BIGINT NOT NULL,
+  uploaded_at   TIMESTAMPTZ DEFAULT NOW(),
+  uploaded_by   TEXT DEFAULT 'admin'
+);
+
+CREATE INDEX IF NOT EXISTS idx_documents_uploaded_at ON documents(uploaded_at);
+
+CREATE TABLE IF NOT EXISTS order_attachments (
+  id           BIGSERIAL PRIMARY KEY,
+  order_id     BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  document_id  BIGINT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  attached_at  TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (order_id, document_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_attachments_order ON order_attachments(order_id);
+
+-- ─────────────────────────────────────────────
+-- 14. Backward-compat additions
+-- booking_requests gains an optional customer_id so Phase 6 can dedupe
+-- web/voice bookings against the CRM without breaking Phase 5e inserts.
+-- ─────────────────────────────────────────────
+ALTER TABLE booking_requests ADD COLUMN IF NOT EXISTS customer_id BIGINT REFERENCES customers(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_booking_requests_customer ON booking_requests(customer_id) WHERE customer_id IS NOT NULL;
+
+-- ─────────────────────────────────────────────
+-- 15. Row Level Security
 -- Disable RLS on all internal-tool tables (this app is behind its own
 -- password gate; the receptionist server uses the service-role key).
 -- ─────────────────────────────────────────────
-ALTER TABLE categories       DISABLE ROW LEVEL SECURITY;
-ALTER TABLE statuses         DISABLE ROW LEVEL SECURITY;
-ALTER TABLE locations        DISABLE ROW LEVEL SECURITY;
-ALTER TABLE equipment        DISABLE ROW LEVEL SECURITY;
-ALTER TABLE equipment_status DISABLE ROW LEVEL SECURITY;
-ALTER TABLE rental_history   DISABLE ROW LEVEL SECURITY;
-ALTER TABLE maintenance_logs DISABLE ROW LEVEL SECURITY;
-ALTER TABLE samsara_devices  DISABLE ROW LEVEL SECURITY;
-ALTER TABLE booking_requests DISABLE ROW LEVEL SECURITY;
+ALTER TABLE categories        DISABLE ROW LEVEL SECURITY;
+ALTER TABLE statuses          DISABLE ROW LEVEL SECURITY;
+ALTER TABLE locations         DISABLE ROW LEVEL SECURITY;
+ALTER TABLE equipment         DISABLE ROW LEVEL SECURITY;
+ALTER TABLE equipment_status  DISABLE ROW LEVEL SECURITY;
+ALTER TABLE rental_history    DISABLE ROW LEVEL SECURITY;
+ALTER TABLE maintenance_logs  DISABLE ROW LEVEL SECURITY;
+ALTER TABLE samsara_devices   DISABLE ROW LEVEL SECURITY;
+ALTER TABLE booking_requests  DISABLE ROW LEVEL SECURITY;
+ALTER TABLE customers         DISABLE ROW LEVEL SECURITY;
+ALTER TABLE orders            DISABLE ROW LEVEL SECURITY;
+ALTER TABLE order_lines       DISABLE ROW LEVEL SECURITY;
+ALTER TABLE documents         DISABLE ROW LEVEL SECURITY;
+ALTER TABLE order_attachments DISABLE ROW LEVEL SECURITY;
