@@ -2,7 +2,9 @@ import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOrderDetail } from "@/lib/order-queries";
+import { listOrderAttachments, listDocuments } from "@/lib/document-queries";
 import OrderActions from "@/components/orders/order-actions";
+import OrderAttachmentsPanel from "@/components/documents/order-attachments-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +41,11 @@ export default async function OrderDetailPage({
 
   const order = await getOrderDetail(id);
   if (!order) notFound();
+
+  const [attachments, libraryDocuments] = await Promise.all([
+    listOrderAttachments(id),
+    listDocuments(),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -155,6 +162,13 @@ export default async function OrderDetailPage({
           <p className="whitespace-pre-wrap text-sm text-gray-700">{order.notes}</p>
         </section>
       )}
+
+      {/* Attachments + upload */}
+      <OrderAttachmentsPanel
+        orderId={order.id}
+        attachments={attachments}
+        libraryDocuments={libraryDocuments}
+      />
     </div>
   );
 }

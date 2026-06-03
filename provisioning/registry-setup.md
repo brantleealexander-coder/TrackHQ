@@ -64,3 +64,18 @@ INSERT INTO customers (
 ```
 
 The slug becomes the URL: `trackhq.com/book/crossmar`.
+
+## 6. Storage bucket (Phase 6g — documents)
+
+Each customer fork stores tenant-document files (rental-agreement templates, waivers, signed order attachments) in a private Supabase Storage bucket named `tenant-documents`. The dashboard creates this bucket lazily the first time a document is uploaded (see [src/lib/storage.ts](../template-dashboard/src/lib/storage.ts) — `ensureBucket`).
+
+No manual setup required. If you'd like to pre-create the bucket so the first upload is faster, run this against the customer's fork:
+
+```sql
+-- Supabase has a built-in storage schema; this matches what ensureBucket() does:
+INSERT INTO storage.buckets (id, name, public, file_size_limit)
+VALUES ('tenant-documents', 'tenant-documents', false, 20971520)
+ON CONFLICT (id) DO NOTHING;
+```
+
+Downloads are served via short-lived (1-hour) signed URLs from the dashboard's `/api/documents/[id]/download` endpoint — the bucket itself is never public.
