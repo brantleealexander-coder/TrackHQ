@@ -113,6 +113,7 @@ export interface BookingRequestInput {
   rate_type: "daily" | "weekly" | "monthly" | null;
   notes: string | null;
   source?: "web" | "voice";
+  customer_id?: number | null;
 }
 
 export async function insertBookingRequest(
@@ -131,6 +132,7 @@ export async function insertBookingRequest(
       rate_type: input.rate_type,
       notes: input.notes,
       source: input.source ?? "web",
+      customer_id: input.customer_id ?? null,
     })
     .select("id")
     .single();

@@ -597,6 +597,47 @@ def _fmt_money(n) -> str:
         return str(n)
 
 
+def _upsert_voice_customer(supabase, name: str, email: str, phone: str):
+    """Phase 6f — find-or-create a customers row from voice-booking contact.
+
+    Dedupes by email (case-insensitive) first, then phone. Returns the
+    customer id, or None if the customers table is missing (pre-6 fork)
+    or the insert fails. Best-effort: failures don't block the booking.
+    """
+    try:
+        if email:
+            existing = (
+                supabase.table("customers")
+                .select("id")
+                .ilike("email", email)
+                .limit(1)
+                .execute()
+            )
+            if existing.data:
+                return existing.data[0]["id"]
+        if phone:
+            existing = (
+                supabase.table("customers")
+                .select("id")
+                .eq("phone", phone)
+                .limit(1)
+                .execute()
+            )
+            if existing.data:
+                return existing.data[0]["id"]
+
+        row = {"name": name}
+        if email:
+            row["email"] = email
+        if phone:
+            row["phone"] = phone
+        result = supabase.table("customers").insert(row).execute()
+        return (result.data or [{}])[0].get("id")
+    except Exception as e:
+        logger.warning("[WARN] webhook: customer upsert skipped: %s", str(e))
+        return None
+
+
 def _available_status_keys(supabase) -> set:
     try:
         result = (
@@ -767,6 +808,17 @@ async def tool_book_rental(params: dict, message: dict) -> str:
         return "I'm not finding that unit. Want me to take a message so we can confirm and call you back?"
 
     unit = rows[0]
+
+    # Phase 6f — dedupe/create a customers row before writing the booking
+    # request so the CRM stays the source of truth. Best-effort; if the
+    # customers table is missing (pre-6 fork), fall through with no link.
+    customer_id = _upsert_voice_customer(
+        supabase,
+        name=caller_name,
+        email=caller_email,
+        phone=caller_phone,
+    )
+
     payload = {
         "equipment_id": unit["id"],
         "renter_name": caller_name,
@@ -778,6 +830,8 @@ async def tool_book_rental(params: dict, message: dict) -> str:
         "notes": notes,
         "source": "voice",
     }
+    if customer_id is not None:
+        payload["customer_id"] = customer_id
 
     try:
         result = supabase.table("booking_requests").insert(payload).execute()
