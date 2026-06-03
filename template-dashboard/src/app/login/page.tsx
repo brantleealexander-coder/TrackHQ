@@ -24,7 +24,7 @@ export default function LoginPage() {
     });
 
     if (res.ok) {
-      router.push("/app/fleet");
+      router.push("/app/dashboard");
       router.refresh();
     } else {
       setError("Incorrect password. Please try again.");

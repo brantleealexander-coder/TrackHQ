@@ -28,7 +28,35 @@ function Icon({ children }: { children: React.ReactNode }) {
   );
 }
 
-function buildLinks(assetPlural: string): NavLink[] {
+const MAIN_LINKS: NavLink[] = [
+  {
+    href: "/app/dashboard",
+    label: "Dashboard",
+    icon: <Icon><rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="16" width="7" height="5" rx="1.5" /></Icon>,
+  },
+  {
+    href: "/app/calendar",
+    label: "Calendar",
+    icon: <Icon><rect x="3" y="4" width="18" height="17" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="8" y1="3" x2="8" y2="5" /><line x1="16" y1="3" x2="16" y2="5" /></Icon>,
+  },
+  {
+    href: "/app/orders",
+    label: "Orders",
+    icon: <Icon><path d="M6 2l1.5 3h9L18 2" /><rect x="4" y="5" width="16" height="17" rx="1.5" /><line x1="8" y1="11" x2="16" y2="11" /><line x1="8" y1="15" x2="16" y2="15" /><line x1="8" y1="19" x2="13" y2="19" /></Icon>,
+  },
+  {
+    href: "/app/customers",
+    label: "Customers",
+    icon: <Icon><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0" /><circle cx="17" cy="9.5" r="2.5" /><path d="M21.5 18a4.5 4.5 0 0 0-5.5-4.4" /></Icon>,
+  },
+  {
+    href: "/app/documents",
+    label: "Documents",
+    icon: <Icon><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="13" y2="17" /></Icon>,
+  },
+];
+
+function operationsLinks(assetPlural: string): NavLink[] {
   return [
     {
       href: "/app/fleet",
@@ -81,7 +109,7 @@ export default function Nav() {
   const router = useRouter();
   const { business, features, terminology } = getTenantConfig();
 
-  const links = buildLinks(terminology.asset_plural).filter(
+  const operations = operationsLinks(terminology.asset_plural).filter(
     (l) => !l.feature || features[l.feature]
   );
 
@@ -94,7 +122,7 @@ export default function Nav() {
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-gray-200 bg-white">
       {/* Brand */}
-      <div className="px-5 py-5">
+      <div className="px-5 pt-5 pb-3">
         {business.logo_url ? (
           <Image
             src={business.logo_url}
@@ -117,11 +145,67 @@ export default function Nav() {
         )}
       </div>
 
-      {/* Links */}
-      <nav className="flex-1 px-3 py-2">
+      {/* New Order CTA */}
+      <div className="px-3 pb-3">
+        <Link
+          href="/app/orders/new"
+          className="group flex items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md hover:from-brand-600 hover:to-brand-700 active:translate-y-[0.5px]"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          New Order
+        </Link>
+      </div>
+
+      {/* MAIN section */}
+      <NavSection label="Main" links={MAIN_LINKS} pathname={pathname} />
+
+      <div className="my-2 mx-3 border-t border-gray-100" />
+
+      {/* OPERATIONS section */}
+      <NavSection label="Operations" links={operations} pathname={pathname} />
+
+      <div className="flex-1" />
+
+      {/* Footer */}
+      <div className="border-t border-gray-100 px-3 py-3">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
+        >
+          <Icon>
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </Icon>
+          Sign out
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+function NavSection({
+  label,
+  links,
+  pathname,
+}: {
+  label: string;
+  links: NavLink[];
+  pathname: string;
+}) {
+  return (
+    <div>
+      <p className="px-5 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+        {label}
+      </p>
+      <nav className="px-3">
         <ul className="space-y-0.5">
           {links.map((link) => {
-            const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+            const active =
+              pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
               <li key={link.href}>
                 <Link
@@ -143,21 +227,6 @@ export default function Nav() {
           })}
         </ul>
       </nav>
-
-      {/* Footer */}
-      <div className="border-t border-gray-100 px-3 py-3">
-        <button
-          onClick={handleLogout}
-          className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
-        >
-          <Icon>
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </Icon>
-          Sign out
-        </button>
-      </div>
-    </aside>
+    </div>
   );
 }
