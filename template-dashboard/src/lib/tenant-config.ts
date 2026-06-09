@@ -32,8 +32,8 @@ export interface TenantConfig {
 const DEFAULT_CONFIG: TenantConfig = {
   business: {
     name: "TrackHQ",
-    logo_url: "",
-    brand_color: "#1e40af",
+    logo_url: "/trackhq-logo.svg",
+    brand_color: "#F37535",
     site_title: "TrackHQ",
   },
   features: {
@@ -78,11 +78,11 @@ export function getTenantConfig(): TenantConfig {
  */
 export function brandColorToRgbTriple(hex: string): string {
   const normalized = hex.replace(/^#/, "").trim();
-  // Fallback: TrackHQ steel/navy #1e40af = (30, 64, 175)
-  if (normalized.length !== 6) return "30 64 175";
+  // Fallback: TrackHQ orange #F37535 = (243, 117, 53)
+  if (normalized.length !== 6) return "243 117 53";
   const r = parseInt(normalized.slice(0, 2), 16);
   const g = parseInt(normalized.slice(2, 4), 16);
   const b = parseInt(normalized.slice(4, 6), 16);
-  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return "30 64 175";
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return "243 117 53";
   return `${r} ${g} ${b}`;
 }

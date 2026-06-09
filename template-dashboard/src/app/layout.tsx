@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { getTenantConfig, brandColorToRgbTriple } from "@/lib/tenant-config";
 import "./globals.css";
@@ -13,6 +13,10 @@ const config = getTenantConfig();
 
 export const metadata: Metadata = {
   title: config.business.site_title,
+};
+
+export const viewport: Viewport = {
+  themeColor: config.business.brand_color,
 };
 
 export default function RootLayout({

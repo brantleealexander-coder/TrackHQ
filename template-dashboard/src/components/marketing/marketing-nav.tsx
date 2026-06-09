@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const links = [
@@ -12,13 +13,18 @@ export default function MarketingNav() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         <Link
           href="/"
-          className="flex items-center gap-2 text-base font-semibold tracking-tight text-gray-900"
+          aria-label="TrackHQ home"
+          className="flex items-center"
         >
-          <span
-            aria-hidden
-            className="inline-block h-6 w-6 rounded bg-gradient-to-br from-brand-500 to-brand-700"
+          <Image
+            src="/trackhq-logo.svg"
+            alt="TrackHQ"
+            width={150}
+            height={37}
+            priority
+            unoptimized
+            className="h-9 w-auto"
           />
-          TrackHQ
         </Link>
 
         <nav className="hidden items-center gap-7 md:flex">

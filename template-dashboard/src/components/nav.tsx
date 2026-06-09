@@ -127,10 +127,11 @@ export default function Nav() {
           <Image
             src={business.logo_url}
             alt={business.name}
-            width={140}
-            height={48}
-            className="rounded"
+            width={160}
+            height={39}
+            className="h-9 w-auto"
             unoptimized
+            priority
           />
         ) : (
           <div className="flex items-center gap-2">

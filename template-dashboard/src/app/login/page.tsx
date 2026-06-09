@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getTenantConfig } from "@/lib/tenant-config";
@@ -44,9 +45,25 @@ export default function LoginPage() {
           <div className="absolute -right-10 bottom-20 h-72 w-72 rounded-full bg-black/20 blur-3xl" />
         </div>
 
-        <Link href="/" className="relative inline-flex items-center gap-2 text-base font-semibold">
-          <span aria-hidden className="inline-block h-7 w-7 rounded bg-white/15 backdrop-blur" />
-          TrackHQ
+        <Link
+          href="/"
+          aria-label="TrackHQ home"
+          className="relative inline-flex items-center gap-2.5 text-xl font-extrabold tracking-tight"
+        >
+          <svg
+            viewBox="0 0 88 88"
+            aria-hidden
+            className="h-8 w-8"
+          >
+            <path
+              d="M44 6C25.6 6 11 20.6 11 38.5 11 62 44 86 44 86s33-24 33-47.5C77 20.6 62.4 6 44 6z"
+              fill="rgba(255,255,255,0.95)"
+            />
+            <circle cx="44" cy="37" r="13" fill="#F37535" />
+          </svg>
+          <span>
+            Track<span className="text-white/90">HQ</span>
+          </span>
         </Link>
 
         <div className="relative">
@@ -70,9 +87,20 @@ export default function LoginPage() {
       <main className="flex items-center justify-center bg-white px-6 py-16 lg:col-span-3">
         <div className="w-full max-w-sm">
           <div className="lg:hidden mb-8">
-            <Link href="/" className="inline-flex items-center gap-2 text-base font-semibold text-gray-900">
-              <span aria-hidden className="inline-block h-6 w-6 rounded bg-gradient-to-br from-brand-500 to-brand-700" />
-              TrackHQ
+            <Link
+              href="/"
+              aria-label="TrackHQ home"
+              className="inline-flex items-center"
+            >
+              <Image
+                src="/trackhq-logo.svg"
+                alt="TrackHQ"
+                width={140}
+                height={34}
+                priority
+                unoptimized
+                className="h-8 w-auto"
+              />
             </Link>
           </div>
 
