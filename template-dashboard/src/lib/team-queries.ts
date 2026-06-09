@@ -1,4 +1,4 @@
-import { createSupabaseServiceClient } from "./supabase";
+import { createSupabaseServiceClient } from "./supabase-server";
 import type { Role } from "./auth";
 
 export interface TeamMember {

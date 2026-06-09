@@ -1,4 +1,4 @@
-import { createSupabaseServiceClient } from "./supabase";
+import { createSupabaseServiceClient } from "./supabase-server";
 
 export interface CompanySummary {
   id: number;

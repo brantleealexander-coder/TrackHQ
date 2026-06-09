@@ -1,5 +1,6 @@
 import { type SupabaseClient } from "@supabase/supabase-js";
-import { createServerSupabaseClient, createSupabaseServiceClient } from "./supabase";
+import { createServerSupabaseClient } from "./supabase";
+import { createSupabaseServiceClient } from "./supabase-server";
 
 /**
  * Phase 7c+: TrackHQ is a single multi-tenant deployment, so "registry"

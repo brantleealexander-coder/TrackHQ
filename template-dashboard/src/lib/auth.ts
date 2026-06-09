@@ -13,7 +13,7 @@
  */
 
 import { redirect } from "next/navigation";
-import { createSupabaseAuthClient } from "@/lib/supabase";
+import { createSupabaseAuthClient } from "@/lib/supabase-server";
 
 export type Role = "owner" | "admin" | "member";
 

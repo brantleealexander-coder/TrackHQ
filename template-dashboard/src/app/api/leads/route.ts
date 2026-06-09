@@ -8,7 +8,7 @@
  */
 
 import { NextResponse, type NextRequest } from "next/server";
-import { createSupabaseServiceClient } from "@/lib/supabase";
+import { createSupabaseServiceClient } from "@/lib/supabase-server";
 import { sendLeadNotification } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
