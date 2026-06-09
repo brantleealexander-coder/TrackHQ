@@ -1,18 +1,87 @@
 -- TrackHQ Template Dashboard — Supabase Schema
 -- Run this in: Supabase Dashboard → SQL Editor → New Query
 --
--- This is the canonical per-tenant schema. After running it, seed the
--- categories / statuses / locations tables with the tenant's specific
--- values via provisioning/seed-tenant.ts (Phase 2c) or manually.
+-- Multi-tenant since Phase 7: every data table carries company_id.
+-- Statuses are shared across companies (code-level taxonomy: the
+-- `behavior` enum drives application logic; companies override the
+-- display name in tenant config if they want different terms).
+
+-- ─────────────────────────────────────────────
+-- 0. Companies (Phase 7 — one row per customer using TrackHQ)
+-- The single source of truth for tenancy. Every data row anywhere in
+-- this schema carries company_id; auth.users get linked to companies
+-- via memberships below.
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS companies (
+  id           BIGSERIAL PRIMARY KEY,
+  name         TEXT NOT NULL,
+  slug         TEXT NOT NULL UNIQUE,
+  brand_color  TEXT,
+  logo_url     TEXT,
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_companies_slug ON companies(slug);
+
+-- Memberships link Supabase auth users to companies + a role.
+-- A single user can belong to multiple companies (rare but allowed —
+-- e.g. an operator helping out a sister rental yard).
+CREATE TABLE IF NOT EXISTS memberships (
+  id          BIGSERIAL PRIMARY KEY,
+  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  company_id  BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  role        TEXT NOT NULL DEFAULT 'member',
+  invited_by  UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  joined_at   TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT memberships_role_check CHECK (role IN ('owner','admin','member')),
+  UNIQUE (user_id, company_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_memberships_user    ON memberships(user_id);
+CREATE INDEX IF NOT EXISTS idx_memberships_company ON memberships(company_id);
+
+-- Super admins (TrackHQ-internal — gates /super-admin/* routes).
+-- A handful of rows, manually managed.
+CREATE TABLE IF NOT EXISTS super_admins (
+  user_id     UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Leads from the marketing site /demo and /contact forms. Phase 7g
+-- inserts a row and fires a Resend notification email.
+CREATE TABLE IF NOT EXISTS leads (
+  id                BIGSERIAL PRIMARY KEY,
+  kind              TEXT NOT NULL DEFAULT 'contact', -- 'demo' | 'contact'
+  name              TEXT NOT NULL,
+  email             TEXT NOT NULL,
+  phone             TEXT,
+  business_name     TEXT NOT NULL,
+  rental_type       TEXT,
+  current_software  TEXT,
+  message           TEXT,
+  status            TEXT NOT NULL DEFAULT 'new',
+                    -- new | contacted | converted | declined
+  created_at        TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT leads_kind_check   CHECK (kind   IN ('demo','contact')),
+  CONSTRAINT leads_status_check CHECK (status IN ('new','contacted','converted','declined'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_leads_status     ON leads(status);
+CREATE INDEX IF NOT EXISTS idx_leads_created_at ON leads(created_at);
 
 -- ─────────────────────────────────────────────
 -- 1. Categories (e.g. "Excavators", "Dozers", "Trucks")
---    Customer-defined. No seed rows in the template.
+--    Per-company.
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS categories (
-  id   BIGSERIAL PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE
+  id          BIGSERIAL PRIMARY KEY,
+  company_id  BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  UNIQUE (company_id, name)
 );
+
+CREATE INDEX IF NOT EXISTS idx_categories_company ON categories(company_id);
 
 -- ─────────────────────────────────────────────
 -- 2. Statuses (e.g. "On Rent", "Available", "In Shop")
@@ -38,23 +107,27 @@ CREATE TABLE IF NOT EXISTS statuses (
 CREATE INDEX IF NOT EXISTS idx_statuses_behavior ON statuses(behavior);
 
 -- ─────────────────────────────────────────────
--- 3. Locations (yards, depots, shops)
---    Customer-defined. Equipment.home_location_id references this.
+-- 3. Locations (yards, depots, shops). Per-company.
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS locations (
-  id        BIGSERIAL PRIMARY KEY,
-  name      TEXT NOT NULL UNIQUE,           -- e.g. 'Bentonville Yard'
-  address   TEXT,                           -- street address (optional)
-  latitude  DOUBLE PRECISION,               -- WGS84
-  longitude DOUBLE PRECISION
+  id          BIGSERIAL PRIMARY KEY,
+  company_id  BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  address     TEXT,
+  latitude    DOUBLE PRECISION,
+  longitude   DOUBLE PRECISION,
+  UNIQUE (company_id, name)
 );
+
+CREATE INDEX IF NOT EXISTS idx_locations_company ON locations(company_id);
 
 -- ─────────────────────────────────────────────
 -- 4. Equipment master (one row per tracked asset — changes rarely)
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS equipment (
   id                BIGSERIAL PRIMARY KEY,
-  gl_code           TEXT UNIQUE NOT NULL,                       -- customer's internal id
+  company_id        BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  gl_code           TEXT NOT NULL,                              -- customer's internal id (unique per company)
   serial_number     TEXT,                                       -- manufacturer serial
   category_id       BIGINT NOT NULL REFERENCES categories(id),
   equipment_name    TEXT NOT NULL,                              -- e.g. 'CAT D6T Dozer'
@@ -68,9 +141,11 @@ CREATE TABLE IF NOT EXISTS equipment (
   current_lng       DOUBLE PRECISION,
   is_cross_charge   BOOLEAN DEFAULT FALSE,
   created_at        TIMESTAMPTZ DEFAULT NOW(),
-  updated_at        TIMESTAMPTZ DEFAULT NOW()
+  updated_at        TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (company_id, gl_code)
 );
 
+CREATE INDEX IF NOT EXISTS idx_equipment_company  ON equipment(company_id);
 CREATE INDEX IF NOT EXISTS idx_equipment_category ON equipment(category_id);
 CREATE INDEX IF NOT EXISTS idx_equipment_gl_code  ON equipment(gl_code);
 CREATE INDEX IF NOT EXISTS idx_equipment_location ON equipment(home_location_id);
@@ -80,6 +155,7 @@ CREATE INDEX IF NOT EXISTS idx_equipment_location ON equipment(home_location_id)
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS equipment_status (
   id            BIGSERIAL PRIMARY KEY,
+  company_id    BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   equipment_id  BIGINT NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
   status        TEXT NOT NULL REFERENCES statuses(key),
   customer_name TEXT,
@@ -94,8 +170,8 @@ CREATE TABLE IF NOT EXISTS equipment_status (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_equipment_status_one_per_unit
   ON equipment_status(equipment_id);
 
-CREATE INDEX IF NOT EXISTS idx_equipment_status_status
-  ON equipment_status(status);
+CREATE INDEX IF NOT EXISTS idx_equipment_status_company ON equipment_status(company_id);
+CREATE INDEX IF NOT EXISTS idx_equipment_status_status  ON equipment_status(status);
 
 -- ─────────────────────────────────────────────
 -- 6. Rental history (append-only log, revenue stored at write time)
@@ -104,6 +180,7 @@ CREATE INDEX IF NOT EXISTS idx_equipment_status_status
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS rental_history (
   id             BIGSERIAL PRIMARY KEY,
+  company_id     BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   equipment_id   BIGINT NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
   status_before  TEXT,
   status_after   TEXT NOT NULL,
@@ -117,6 +194,7 @@ CREATE TABLE IF NOT EXISTS rental_history (
   recorded_by    TEXT DEFAULT 'admin'
 );
 
+CREATE INDEX IF NOT EXISTS idx_rental_history_company   ON rental_history(company_id);
 CREATE INDEX IF NOT EXISTS idx_rental_history_equipment ON rental_history(equipment_id);
 CREATE INDEX IF NOT EXISTS idx_rental_history_date      ON rental_history(rental_start);
 CREATE INDEX IF NOT EXISTS idx_rental_history_recorded  ON rental_history(recorded_at);
@@ -126,6 +204,7 @@ CREATE INDEX IF NOT EXISTS idx_rental_history_recorded  ON rental_history(record
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS maintenance_logs (
   id             BIGSERIAL PRIMARY KEY,
+  company_id     BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   equipment_id   BIGINT NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
   date           DATE NOT NULL,
   cost           NUMERIC(10,2) NOT NULL DEFAULT 0,
@@ -137,6 +216,7 @@ CREATE TABLE IF NOT EXISTS maintenance_logs (
   created_by     TEXT DEFAULT 'admin'
 );
 
+CREATE INDEX IF NOT EXISTS idx_maintenance_company   ON maintenance_logs(company_id);
 CREATE INDEX IF NOT EXISTS idx_maintenance_equipment ON maintenance_logs(equipment_id);
 CREATE INDEX IF NOT EXISTS idx_maintenance_date      ON maintenance_logs(date);
 
@@ -145,7 +225,8 @@ CREATE INDEX IF NOT EXISTS idx_maintenance_date      ON maintenance_logs(date);
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS samsara_devices (
   id              BIGSERIAL PRIMARY KEY,
-  samsara_id      TEXT UNIQUE NOT NULL,
+  company_id      BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  samsara_id      TEXT NOT NULL,
   gateway_serial  TEXT,
   samsara_name    TEXT,
   notes           TEXT,
@@ -153,9 +234,11 @@ CREATE TABLE IF NOT EXISTS samsara_devices (
   is_active       BOOLEAN DEFAULT TRUE,
   last_seen_at    TIMESTAMPTZ,
   created_at      TIMESTAMPTZ DEFAULT NOW(),
-  updated_at      TIMESTAMPTZ DEFAULT NOW()
+  updated_at      TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (company_id, samsara_id)
 );
 
+CREATE INDEX IF NOT EXISTS idx_samsara_company   ON samsara_devices(company_id);
 CREATE INDEX IF NOT EXISTS idx_samsara_equipment ON samsara_devices(equipment_id);
 
 -- ─────────────────────────────────────────────
@@ -167,6 +250,7 @@ CREATE INDEX IF NOT EXISTS idx_samsara_equipment ON samsara_devices(equipment_id
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS booking_requests (
   id            BIGSERIAL PRIMARY KEY,
+  company_id    BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   equipment_id  BIGINT NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
   renter_name   TEXT NOT NULL,
   renter_email  TEXT NOT NULL,
@@ -180,6 +264,7 @@ CREATE TABLE IF NOT EXISTS booking_requests (
   created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE INDEX IF NOT EXISTS idx_booking_requests_company   ON booking_requests(company_id);
 CREATE INDEX IF NOT EXISTS idx_booking_requests_equipment ON booking_requests(equipment_id);
 CREATE INDEX IF NOT EXISTS idx_booking_requests_status    ON booking_requests(status);
 CREATE INDEX IF NOT EXISTS idx_booking_requests_created   ON booking_requests(created_at);
@@ -194,6 +279,7 @@ CREATE INDEX IF NOT EXISTS idx_booking_requests_created   ON booking_requests(cr
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS customers (
   id          BIGSERIAL PRIMARY KEY,
+  company_id  BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   name        TEXT NOT NULL,
   email       TEXT,
   phone       TEXT,
@@ -207,9 +293,10 @@ CREATE TABLE IF NOT EXISTS customers (
 -- Dedupe lookups go through lower(email) so case doesn't matter; nullable
 -- partial-unique would be cleaner but we leave dedup to application code
 -- so the voice flow can still insert when email is empty.
-CREATE INDEX IF NOT EXISTS idx_customers_email_lower ON customers(LOWER(email)) WHERE email IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_customers_phone       ON customers(phone)        WHERE phone IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_customers_name        ON customers(name);
+CREATE INDEX IF NOT EXISTS idx_customers_company     ON customers(company_id);
+CREATE INDEX IF NOT EXISTS idx_customers_email_lower ON customers(company_id, LOWER(email)) WHERE email IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_customers_phone       ON customers(company_id, phone)        WHERE phone IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_customers_name        ON customers(company_id, name);
 
 -- ─────────────────────────────────────────────
 -- 11. Orders (Phase 6 — Booqable-style multi-asset orders)
@@ -220,6 +307,7 @@ CREATE INDEX IF NOT EXISTS idx_customers_name        ON customers(name);
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS orders (
   id                   BIGSERIAL PRIMARY KEY,
+  company_id           BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   customer_id          BIGINT NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
   status               TEXT NOT NULL DEFAULT 'upcoming',
                        -- upcoming | active | completed | cancelled
@@ -238,8 +326,9 @@ CREATE TABLE IF NOT EXISTS orders (
   CONSTRAINT orders_dates_check CHECK (rental_end >= rental_start)
 );
 
+CREATE INDEX IF NOT EXISTS idx_orders_company         ON orders(company_id);
 CREATE INDEX IF NOT EXISTS idx_orders_customer        ON orders(customer_id);
-CREATE INDEX IF NOT EXISTS idx_orders_status_start    ON orders(status, rental_start);
+CREATE INDEX IF NOT EXISTS idx_orders_status_start    ON orders(company_id, status, rental_start);
 CREATE INDEX IF NOT EXISTS idx_orders_booking_request ON orders(booking_request_id) WHERE booking_request_id IS NOT NULL;
 
 -- ─────────────────────────────────────────────
@@ -247,6 +336,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_booking_request ON orders(booking_request_
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS order_lines (
   id            BIGSERIAL PRIMARY KEY,
+  company_id    BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   order_id      BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   equipment_id  BIGINT NOT NULL REFERENCES equipment(id) ON DELETE RESTRICT,
   rate_type     TEXT NOT NULL,                       -- daily | weekly | monthly
@@ -255,6 +345,7 @@ CREATE TABLE IF NOT EXISTS order_lines (
   created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE INDEX IF NOT EXISTS idx_order_lines_company   ON order_lines(company_id);
 CREATE INDEX IF NOT EXISTS idx_order_lines_order     ON order_lines(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_lines_equipment ON order_lines(equipment_id);
 
@@ -267,6 +358,7 @@ CREATE INDEX IF NOT EXISTS idx_order_lines_equipment ON order_lines(equipment_id
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS documents (
   id            BIGSERIAL PRIMARY KEY,
+  company_id    BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   name          TEXT NOT NULL,
   description   TEXT,
   storage_path  TEXT NOT NULL,                       -- key inside tenant-documents bucket
@@ -276,17 +368,20 @@ CREATE TABLE IF NOT EXISTS documents (
   uploaded_by   TEXT DEFAULT 'admin'
 );
 
+CREATE INDEX IF NOT EXISTS idx_documents_company     ON documents(company_id);
 CREATE INDEX IF NOT EXISTS idx_documents_uploaded_at ON documents(uploaded_at);
 
 CREATE TABLE IF NOT EXISTS order_attachments (
   id           BIGSERIAL PRIMARY KEY,
+  company_id   BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   order_id     BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   document_id  BIGINT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
   attached_at  TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (order_id, document_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_order_attachments_order ON order_attachments(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_attachments_company ON order_attachments(company_id);
+CREATE INDEX IF NOT EXISTS idx_order_attachments_order   ON order_attachments(order_id);
 
 -- ─────────────────────────────────────────────
 -- 14. Backward-compat additions
@@ -298,9 +393,14 @@ CREATE INDEX IF NOT EXISTS idx_booking_requests_customer ON booking_requests(cus
 
 -- ─────────────────────────────────────────────
 -- 15. Row Level Security
--- Disable RLS on all internal-tool tables (this app is behind its own
--- password gate; the receptionist server uses the service-role key).
+-- Disabled on every table for v1. Tenancy is app-enforced: each
+-- query takes company_id from the current membership and filters by
+-- it. Defence-in-depth RLS lands in a later phase.
 -- ─────────────────────────────────────────────
+ALTER TABLE companies         DISABLE ROW LEVEL SECURITY;
+ALTER TABLE memberships       DISABLE ROW LEVEL SECURITY;
+ALTER TABLE super_admins      DISABLE ROW LEVEL SECURITY;
+ALTER TABLE leads             DISABLE ROW LEVEL SECURITY;
 ALTER TABLE categories        DISABLE ROW LEVEL SECURITY;
 ALTER TABLE statuses          DISABLE ROW LEVEL SECURITY;
 ALTER TABLE locations         DISABLE ROW LEVEL SECURITY;
