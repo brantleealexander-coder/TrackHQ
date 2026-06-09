@@ -70,7 +70,10 @@ export async function POST(req: NextRequest) {
           company_id: inviter.company_id,
           invited_role: roleRaw,
         },
-        redirectTo: `${origin}/auth/callback?next=/accept-invite`,
+        // Invite emails use the implicit grant (tokens in URL hash, not ?code=).
+        // /accept-invite is a Client Component whose supabase-js browser client
+        // auto-parses the hash and establishes the session.
+        redirectTo: `${origin}/accept-invite`,
       }
     );
     if (inviteErr || !invited?.user) {

@@ -48,7 +48,7 @@ function LoginForm() {
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       email.trim(),
       {
-        redirectTo: `${window.location.origin}/auth/callback?next=/accept-invite`,
+        redirectTo: `${window.location.origin}/accept-invite`,
       }
     );
     if (resetError) {

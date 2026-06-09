@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   if (!userId) {
     const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
       data: { company_id: company.id, invited_role: "owner" },
-      redirectTo: `${origin}/auth/callback?next=/accept-invite`,
+      redirectTo: `${origin}/accept-invite`,
     });
     if (inviteErr || !invited?.user) {
       // Roll back the company so the slug isn't wasted on a half-built record.
