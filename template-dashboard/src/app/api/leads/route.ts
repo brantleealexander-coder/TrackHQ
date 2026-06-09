@@ -1,21 +1,24 @@
 /**
- * /api/leads — accepts demo / contact form submissions from the marketing site.
+ * /api/leads — submissions from the marketing /demo and /contact forms.
  *
- * Phase 5b-3 minimum viable: validates the payload, logs it to the server
- * console (visible in Vercel logs), and returns 200. Phase 5e will wire
- * this up to the central registry Supabase (`leads` table) and an email
- * notification to sales — until then the operator can read the lead
- * out of Vercel logs.
+ * Phase 7g: writes to the leads table (visible in /super-admin/leads) and
+ * fires a Resend notification email to brantlee@talloakai.com. Email
+ * sending is best-effort — if Resend is misconfigured we still return 200
+ * to the front-end and surface the lead in the super-admin inbox.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
+import { createSupabaseServiceClient } from "@/lib/supabase";
+import { sendLeadNotification } from "@/lib/email";
+
+export const dynamic = "force-dynamic";
 
 interface LeadPayload {
   kind: "demo" | "contact";
-  name?: string;
-  email?: string;
+  name: string;
+  email: string;
   phone?: string;
-  business_name?: string;
+  business_name: string;
   rental_type?: string;
   current_software?: string;
   message?: string;
@@ -63,13 +66,42 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!result.ok) {
     return NextResponse.json({ error: result.reason }, { status: 400 });
   }
+  const { lead } = result;
 
-  // Phase 5e will replace this with: insert into trackhq-registry.leads
-  // + send notification email to sales. For now: log so operators can
-  // see the lead in Vercel function logs.
+  // 1. Persist to the leads table so it appears in /super-admin/leads.
+  // Best-effort: if the table is unreachable we still try to email.
+  try {
+    const supabase = createSupabaseServiceClient();
+    const { error } = await supabase.from("leads").insert({
+      kind: lead.kind,
+      name: lead.name,
+      email: lead.email,
+      phone: lead.phone ?? null,
+      business_name: lead.business_name,
+      rental_type: lead.rental_type ?? null,
+      current_software: lead.current_software ?? null,
+      message: lead.message ?? null,
+    });
+    if (error) {
+      console.error("[leads] insert failed:", error.message);
+    }
+  } catch (err) {
+    const m = err instanceof Error ? err.message : String(err);
+    console.error("[leads] supabase client failed:", m);
+  }
+
+  // 2. Fire-and-forget notification email. Errors logged but not surfaced.
+  try {
+    await sendLeadNotification(lead);
+  } catch (err) {
+    const m = err instanceof Error ? err.message : String(err);
+    console.error("[leads] email send failed:", m);
+  }
+
+  // 3. Operator still sees the lead in Vercel logs as a backup.
   console.log(
-    `[trackhq-lead] ${new Date().toISOString()} ${result.lead.kind.toUpperCase()}`,
-    JSON.stringify(result.lead)
+    `[trackhq-lead] ${new Date().toISOString()} ${lead.kind.toUpperCase()}`,
+    JSON.stringify(lead)
   );
 
   return NextResponse.json({ ok: true });
