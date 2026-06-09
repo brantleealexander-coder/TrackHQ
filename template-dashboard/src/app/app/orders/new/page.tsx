@@ -1,13 +1,15 @@
 import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { getAvailableAssets } from "@/lib/available-assets";
+import { requireMembership } from "@/lib/auth";
 import NewOrderForm from "@/components/orders/new-order-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewOrderPage() {
   noStore();
-  const assets = await getAvailableAssets();
+  const { company_id } = await requireMembership();
+  const assets = await getAvailableAssets(company_id);
 
   return (
     <div className="space-y-6">

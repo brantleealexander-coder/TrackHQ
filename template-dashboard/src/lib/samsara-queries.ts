@@ -1,8 +1,7 @@
 import { createServerSupabaseClient } from "./supabase";
 import type { SamsaraDeviceWithEquipment } from "./types";
 
-// Fetch all Samsara devices with their (optional) linked equipment + status.
-export async function getSamsaraDevices(): Promise<SamsaraDeviceWithEquipment[]> {
+export async function getSamsaraDevices(companyId: number): Promise<SamsaraDeviceWithEquipment[]> {
   const supabase = createServerSupabaseClient();
 
   const { data, error } = await supabase
@@ -17,6 +16,7 @@ export async function getSamsaraDevices(): Promise<SamsaraDeviceWithEquipment[]>
       )
     `
     )
+    .eq("company_id", companyId)
     .order("samsara_name", { ascending: true, nullsFirst: false });
 
   if (error) throw new Error(`getSamsaraDevices: ${error.message}`);
@@ -43,16 +43,7 @@ export async function getSamsaraDevices(): Promise<SamsaraDeviceWithEquipment[]>
   }));
 }
 
-// Used by the sync route — upsert by samsara_id (stable, never changes).
-// Writes the user-set samsara_name and last_seen_at; preserves notes /
-// equipment_id / is_active by omitting them.
-//
-// gateway_serial is only written when explicitly provided. Pass undefined (or
-// just omit the field) to leave the existing DB value alone. This matters
-// because Samsara's /devices endpoint may be disabled at the account level —
-// in which case the sync can't resolve serials and shouldn't wipe out any
-// manually-entered ones.
-export async function upsertSamsaraDevice(input: {
+export async function upsertSamsaraDevice(companyId: number, input: {
   samsara_id: string;
   samsara_name?: string | null;
   gateway_serial?: string;
@@ -61,6 +52,7 @@ export async function upsertSamsaraDevice(input: {
   const supabase = createServerSupabaseClient();
 
   const payload: Record<string, unknown> = {
+    company_id: companyId,
     samsara_id: input.samsara_id,
     last_seen_at: input.last_seen_at,
     updated_at: new Date().toISOString(),
@@ -74,13 +66,13 @@ export async function upsertSamsaraDevice(input: {
 
   const { error } = await supabase
     .from("samsara_devices")
-    .upsert(payload, { onConflict: "samsara_id" });
+    .upsert(payload, { onConflict: "company_id,samsara_id" });
 
   if (error) throw new Error(`upsertSamsaraDevice: ${error.message}`);
 }
 
-// Targeted update — only the fields the user provides are written.
 export async function updateSamsaraDevice(
+  companyId: number,
   id: number,
   patch: {
     notes?: string | null;
@@ -101,17 +93,20 @@ export async function updateSamsaraDevice(
   if (patch.gateway_serial !== undefined) update.gateway_serial = patch.gateway_serial;
   if (patch.samsara_name !== undefined) update.samsara_name = patch.samsara_name;
 
-  const { error } = await supabase.from("samsara_devices").update(update).eq("id", id);
+  const { error } = await supabase
+    .from("samsara_devices")
+    .update(update)
+    .eq("company_id", companyId)
+    .eq("id", id);
   if (error) throw new Error(`updateSamsaraDevice: ${error.message}`);
 }
 
-// Used by the sync route to determine which existing devices already have a
-// user-set samsara_name — so the next sync doesn't clobber those names.
-export async function getExistingSamsaraNames(): Promise<Record<string, string | null>> {
+export async function getExistingSamsaraNames(companyId: number): Promise<Record<string, string | null>> {
   const supabase = createServerSupabaseClient();
   const { data, error } = await supabase
     .from("samsara_devices")
-    .select("samsara_id, samsara_name");
+    .select("samsara_id, samsara_name")
+    .eq("company_id", companyId);
   if (error) throw new Error(`getExistingSamsaraNames: ${error.message}`);
   const out: Record<string, string | null> = {};
   for (const row of (data ?? []) as { samsara_id: string; samsara_name: string | null }[]) {
@@ -120,14 +115,14 @@ export async function getExistingSamsaraNames(): Promise<Record<string, string |
   return out;
 }
 
-// Equipment dropdown source for the admin page.
-export async function getEquipmentOptions(): Promise<
+export async function getEquipmentOptions(companyId: number): Promise<
   { id: number; gl_code: string; equipment_name: string }[]
 > {
   const supabase = createServerSupabaseClient();
   const { data, error } = await supabase
     .from("equipment")
     .select("id, gl_code, equipment_name")
+    .eq("company_id", companyId)
     .order("gl_code", { ascending: true });
   if (error) throw new Error(`getEquipmentOptions: ${error.message}`);
   return (data ?? []) as { id: number; gl_code: string; equipment_name: string }[];

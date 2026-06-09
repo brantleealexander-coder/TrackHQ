@@ -2,6 +2,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCustomerProfile } from "@/lib/customer-detail-queries";
+import { requireMembership } from "@/lib/auth";
 import CustomerContactForm from "@/components/customers/customer-contact-form";
 
 export const dynamic = "force-dynamic";
@@ -34,10 +35,11 @@ export default async function CustomerDetailPage({
   params: { id: string };
 }) {
   noStore();
+  const { company_id } = await requireMembership();
   const id = parseInt(params.id, 10);
   if (Number.isNaN(id)) notFound();
 
-  const customer = await getCustomerProfile(id);
+  const customer = await getCustomerProfile(company_id, id);
   if (!customer) notFound();
 
   return (

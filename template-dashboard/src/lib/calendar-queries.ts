@@ -1,10 +1,9 @@
 import { createServerSupabaseClient } from "./supabase";
 
-// Public-facing shape passed to the client calendar component.
 export interface CalendarOrder {
   id: number;
-  status: string; // upcoming | active | completed | cancelled
-  rental_start: string; // YYYY-MM-DD
+  status: string;
+  rental_start: string;
   rental_end: string;
   customer_name: string;
   asset_count: number;
@@ -21,9 +20,8 @@ interface OrderRow {
   order_lines: { id: number }[] | null;
 }
 
-// Orders intersecting [from, to]. We want anything whose date range
-// touches the window — i.e. starts before `to` AND ends on/after `from`.
 export async function getCalendarOrders(
+  companyId: number,
   from: string,
   to: string
 ): Promise<CalendarOrder[]> {
@@ -35,6 +33,7 @@ export async function getCalendarOrders(
       customers ( name ),
       order_lines ( id )
     `)
+    .eq("company_id", companyId)
     .lte("rental_start", to)
     .gte("rental_end", from)
     .neq("status", "cancelled")

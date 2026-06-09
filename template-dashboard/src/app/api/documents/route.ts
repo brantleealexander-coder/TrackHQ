@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { uploadDocument } from "@/lib/storage";
+import { requireMembership } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ const ALLOWED_MIME = new Set([
 const MAX_BYTES = 20 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
+  const { company_id } = await requireMembership();
+
   let form: FormData;
   try {
     form = await req.formData();
@@ -41,11 +44,12 @@ export async function POST(req: NextRequest) {
   const finalName = name || file.name || "Untitled document";
 
   try {
-    const uploaded = await uploadDocument(file);
+    const uploaded = await uploadDocument(company_id, file);
     const supabase = createServerSupabaseClient();
     const { data, error } = await supabase
       .from("documents")
       .insert({
+        company_id,
         name: finalName,
         description: description || null,
         storage_path: uploaded.storage_path,

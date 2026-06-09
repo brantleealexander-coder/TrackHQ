@@ -47,12 +47,12 @@ export interface UploadResult {
   mime_type: string;
 }
 
-export async function uploadDocument(file: File): Promise<UploadResult> {
+export async function uploadDocument(companyId: number, file: File): Promise<UploadResult> {
   const client = getStorageClient();
   await ensureBucket(client);
 
   const buf = Buffer.from(await file.arrayBuffer());
-  const path = `library/${pseudoId()}-${safeBasename(file.name)}`;
+  const path = `c${companyId}/library/${pseudoId()}-${safeBasename(file.name)}`;
 
   const { error } = await client.storage.from(BUCKET).upload(path, buf, {
     contentType: file.type || "application/octet-stream",

@@ -1,71 +1,50 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { type SupabaseClient } from "@supabase/supabase-js";
+import { createServerSupabaseClient, createSupabaseServiceClient } from "./supabase";
 
-// Row in the central registry's `customers` table. Each row is one
-// provisioned customer fork — fork_supabase_* fields let the master
-// deployment (trackhq.com) query the customer's Supabase server-side
-// to render /book/<slug> with that customer's branding + catalog.
-export interface CustomerFork {
+/**
+ * Phase 7c+: TrackHQ is a single multi-tenant deployment, so "registry"
+ * lookups now resolve to a row in the main `companies` table. Kept as a
+ * separate module to keep the /book/<slug> POS code path tidy; downstream
+ * code still calls getCustomer(slug) + createCustomerClient(customer).
+ *
+ * The old fork-per-customer registry (provisioning/registry-schema.sql)
+ * stays in the repo for a future data-isolated tier; the runtime no
+ * longer consults it.
+ */
+
+export interface CustomerCompany {
+  company_id: number;
   slug: string;
   business_name: string;
   brand_color: string;
   logo_url: string | null;
-  fork_supabase_url: string;
-  fork_supabase_service_role_key: string;
-  vapi_assistant_id: string | null;
   terminology_asset_plural: string;
   terminology_asset_singular: string;
-  active: boolean;
 }
 
-function getRegistryClient(): SupabaseClient | null {
-  const url = process.env.REGISTRY_SUPABASE_URL;
-  const key = process.env.REGISTRY_SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key, { auth: { persistSession: false } });
-}
-
-// When no registry is configured, build a synthetic CustomerFork from
-// the local dev's existing Supabase env. /book/<anything> resolves to the
-// same dev project — useful for local UI work before a registry exists.
-function devFallback(slug: string): CustomerFork | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_KEY;
-  if (!url || !key) return null;
-  return {
-    slug,
-    business_name: process.env.NEXT_PUBLIC_DEV_CUSTOMER_NAME ?? "Crossmar (dev)",
-    brand_color: process.env.NEXT_PUBLIC_DEV_CUSTOMER_BRAND ?? "#f97316",
-    logo_url: null,
-    fork_supabase_url: url,
-    fork_supabase_service_role_key: key,
-    vapi_assistant_id: null,
-    terminology_asset_plural: "Fleet",
-    terminology_asset_singular: "Unit",
-    active: true,
-  };
-}
-
-export async function getCustomer(slug: string): Promise<CustomerFork | null> {
-  const reg = getRegistryClient();
-  if (!reg) return devFallback(slug);
-
-  const { data, error } = await reg
-    .from("customers")
-    .select("*")
+export async function getCustomer(slug: string): Promise<CustomerCompany | null> {
+  const supabase = createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("companies")
+    .select("id, slug, name, brand_color, logo_url")
     .eq("slug", slug)
-    .eq("active", true)
     .maybeSingle();
 
   if (error || !data) return null;
-  return data as CustomerFork;
+  return {
+    company_id: data.id as number,
+    slug: data.slug as string,
+    business_name: data.name as string,
+    brand_color: (data.brand_color as string) ?? "#F37535",
+    logo_url: (data.logo_url as string | null) ?? null,
+    terminology_asset_plural: "Assets",
+    terminology_asset_singular: "Asset",
+  };
 }
 
-// Service-role client into a customer's fork. Use this for both reads
-// (catalog) and writes (booking request inserts) from /book/<slug>.
-export function createCustomerClient(customer: CustomerFork): SupabaseClient {
-  return createClient(
-    customer.fork_supabase_url,
-    customer.fork_supabase_service_role_key,
-    { auth: { persistSession: false } }
-  );
+// Service-role client for the POS path — same DB for every company now,
+// but we use the service-role key so the public booking flow can write
+// regardless of session state.
+export function createCustomerClient(_customer: CustomerCompany): SupabaseClient {
+  return createSupabaseServiceClient();
 }

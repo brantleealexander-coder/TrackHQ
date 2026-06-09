@@ -1,5 +1,6 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { getCalendarOrders } from "@/lib/calendar-queries";
+import { requireMembership } from "@/lib/auth";
 import CalendarView from "@/components/calendar/calendar-view";
 
 export const dynamic = "force-dynamic";
@@ -10,13 +11,14 @@ function ymd(d: Date): string {
 
 export default async function CalendarPage() {
   noStore();
+  const { company_id } = await requireMembership();
 
   // Window: first of current month through end of next month
   const now = new Date();
   const from = ymd(new Date(now.getFullYear(), now.getMonth(), 1));
   const to = ymd(new Date(now.getFullYear(), now.getMonth() + 2, 0));
 
-  const orders = await getCalendarOrders(from, to);
+  const orders = await getCalendarOrders(company_id, from, to);
 
   return (
     <div className="space-y-6">

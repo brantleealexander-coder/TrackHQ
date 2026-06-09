@@ -1,59 +1,80 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createHmac } from "crypto";
+import { createServerClient } from "@supabase/ssr";
 
-const COOKIE_NAME = "tenant_auth";
-
-function makeToken(secret: string): string {
-  return createHmac("sha256", secret).update("authenticated").digest("hex");
-}
-
-// Public paths — no auth cookie required. Everything not on this list
-// (in particular `/app/*` and all data-touching `/api/*` routes) is gated.
-// Marketing pages, the POS at `/book/<slug>`, the lead-capture API, and
-// the legal pages are intentionally open.
+// Public prefixes — auth not required.
+// Marketing site, hosted POS, lead capture, password-reset flow.
 const PUBLIC_PREFIXES = [
   "/login",
-  "/api/auth",
+  "/auth",          // Supabase callback + reset flow
+  "/accept-invite", // invitee password-set
   "/privacy",
   "/terms",
-  "/book",       // POS (Phase 5e)
-  "/api/book",   // POS write API (Phase 5e)
-  "/api/leads",  // demo-form lead capture (Phase 5b)
+  "/book",          // public POS
+  "/api/book",      // POS write API
+  "/api/leads",     // marketing-form lead capture
   "/pricing",
   "/about",
   "/contact",
   "/demo",
 ];
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  if (pathname === "/") return NextResponse.next();
-  const isPublic = PUBLIC_PREFIXES.some(
+function isPublic(pathname: string): boolean {
+  if (pathname === "/") return true;
+  return PUBLIC_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`)
   );
-  if (isPublic) {
-    return NextResponse.next();
+}
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  let response = NextResponse.next({ request });
+
+  // Bind a Supabase client to req/res so session refresh writes back.
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => request.cookies.getAll(),
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          response = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (isPublic(pathname)) {
+    // Already signed in and hitting /login? Bounce to the dashboard.
+    if (user && pathname === "/login") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/app/dashboard";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+    return response;
   }
 
-  const secret = process.env.COOKIE_SECRET;
-  if (!secret) {
+  if (!user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.search = `?next=${encodeURIComponent(pathname + request.nextUrl.search)}`;
     return NextResponse.redirect(url);
   }
 
-  const expected = makeToken(secret);
-  const cookie = request.cookies.get(COOKIE_NAME)?.value;
-
-  if (cookie !== expected) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|gif|ico|webp)$).*)"],
 };

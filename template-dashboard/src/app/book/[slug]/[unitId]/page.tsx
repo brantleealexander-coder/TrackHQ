@@ -26,7 +26,7 @@ export default async function BookUnitPage({
   if (Number.isNaN(id)) notFound();
 
   const client = createCustomerClient(customer);
-  const unit = await getCatalogUnit(client, id);
+  const unit = await getCatalogUnit(client, customer.company_id, id);
   if (!unit) notFound();
 
   return (

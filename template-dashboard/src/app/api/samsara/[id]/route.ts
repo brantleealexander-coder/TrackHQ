@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateSamsaraDevice } from "@/lib/samsara-queries";
+import { requireMembership } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -7,6 +8,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { company_id } = await requireMembership();
   const id = parseInt(params.id, 10);
   if (isNaN(id)) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
@@ -41,7 +43,7 @@ export async function PATCH(
   }
 
   try {
-    await updateSamsaraDevice(id, patch);
+    await updateSamsaraDevice(company_id, id, patch);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

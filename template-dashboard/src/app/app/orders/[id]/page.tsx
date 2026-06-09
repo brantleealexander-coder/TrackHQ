@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOrderDetail } from "@/lib/order-queries";
 import { listOrderAttachments, listDocuments } from "@/lib/document-queries";
+import { requireMembership } from "@/lib/auth";
 import OrderActions from "@/components/orders/order-actions";
 import OrderAttachmentsPanel from "@/components/documents/order-attachments-panel";
 
@@ -36,15 +37,16 @@ export default async function OrderDetailPage({
   params: { id: string };
 }) {
   noStore();
+  const { company_id } = await requireMembership();
   const id = parseInt(params.id, 10);
   if (Number.isNaN(id)) notFound();
 
-  const order = await getOrderDetail(id);
+  const order = await getOrderDetail(company_id, id);
   if (!order) notFound();
 
   const [attachments, libraryDocuments] = await Promise.all([
-    listOrderAttachments(id),
-    listDocuments(),
+    listOrderAttachments(company_id, id),
+    listDocuments(company_id),
   ]);
 
   return (

@@ -50,7 +50,7 @@ export interface ListOrdersOpts {
   limit?: number;
 }
 
-export async function listOrders(opts: ListOrdersOpts = {}): Promise<OrderRow[]> {
+export async function listOrders(companyId: number, opts: ListOrdersOpts = {}): Promise<OrderRow[]> {
   const supabase = createServerSupabaseClient();
   let q = supabase
     .from("orders")
@@ -59,6 +59,7 @@ export async function listOrders(opts: ListOrdersOpts = {}): Promise<OrderRow[]>
       customers ( name ),
       order_lines ( id )
     `)
+    .eq("company_id", companyId)
     .order("rental_start", { ascending: false })
     .limit(opts.limit ?? 200);
 
@@ -70,9 +71,12 @@ export async function listOrders(opts: ListOrdersOpts = {}): Promise<OrderRow[]>
   return (data as unknown as RawOrder[]).map(mapOrder);
 }
 
-export async function countOrdersByStatus(): Promise<Record<OrderStatus, number>> {
+export async function countOrdersByStatus(companyId: number): Promise<Record<OrderStatus, number>> {
   const supabase = createServerSupabaseClient();
-  const { data, error } = await supabase.from("orders").select("status");
+  const { data, error } = await supabase
+    .from("orders")
+    .select("status")
+    .eq("company_id", companyId);
   const out: Record<OrderStatus, number> = { upcoming: 0, active: 0, completed: 0, cancelled: 0 };
   if (error || !data) return out;
   for (const row of data as { status: OrderStatus }[]) {
@@ -111,7 +115,7 @@ export interface OrderDetail {
   lines: OrderLineDetail[];
 }
 
-export async function getOrderDetail(id: number): Promise<OrderDetail | null> {
+export async function getOrderDetail(companyId: number, id: number): Promise<OrderDetail | null> {
   const supabase = createServerSupabaseClient();
 
   const { data: orderRow, error } = await supabase
@@ -120,6 +124,7 @@ export async function getOrderDetail(id: number): Promise<OrderDetail | null> {
       id, status, source, rental_start, rental_end, total, notes, created_at, updated_at,
       customers ( id, name, email, phone, company )
     `)
+    .eq("company_id", companyId)
     .eq("id", id)
     .maybeSingle();
 
@@ -152,6 +157,7 @@ export async function getOrderDetail(id: number): Promise<OrderDetail | null> {
       id, equipment_id, rate_type, rate_amount, line_total,
       equipment ( gl_code, equipment_name )
     `)
+    .eq("company_id", companyId)
     .eq("order_id", id)
     .order("id", { ascending: true });
 

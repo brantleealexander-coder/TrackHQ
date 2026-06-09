@@ -10,11 +10,11 @@ export interface NewOrderLineInput {
 
 export interface NewOrderInput {
   customer_id: number;
-  rental_start: string; // YYYY-MM-DD
+  rental_start: string;
   rental_end: string;
   notes?: string | null;
   source?: OrderSource;
-  status?: Exclude<OrderStatus, "cancelled">; // operator can pre-mark upcoming/active
+  status?: Exclude<OrderStatus, "cancelled">;
   lines: NewOrderLineInput[];
 }
 
@@ -23,10 +23,7 @@ export interface CreatedOrder {
   total: number;
 }
 
-// Best-effort transactional create: insert order, insert lines, flip
-// equipment_status to 'on_rent' for each asset when the order is active.
-// If a stage fails, we attempt to roll back the order row.
-export async function createOrder(input: NewOrderInput): Promise<CreatedOrder> {
+export async function createOrder(companyId: number, input: NewOrderInput): Promise<CreatedOrder> {
   if (input.lines.length === 0) {
     throw new Error("Order must have at least one line");
   }
@@ -36,10 +33,10 @@ export async function createOrder(input: NewOrderInput): Promise<CreatedOrder> {
   const status = input.status ?? "upcoming";
   const source = input.source ?? "operator";
 
-  // 1. Order header
   const { data: order, error: orderErr } = await supabase
     .from("orders")
     .insert({
+      company_id: companyId,
       customer_id: input.customer_id,
       status,
       rental_start: input.rental_start,
@@ -57,9 +54,9 @@ export async function createOrder(input: NewOrderInput): Promise<CreatedOrder> {
 
   const orderId = order.id as number;
 
-  // 2. Order lines
   const { error: linesErr } = await supabase.from("order_lines").insert(
     input.lines.map((l) => ({
+      company_id: companyId,
       order_id: orderId,
       equipment_id: l.equipment_id,
       rate_type: l.rate_type,
@@ -73,11 +70,10 @@ export async function createOrder(input: NewOrderInput): Promise<CreatedOrder> {
     throw new Error(`createOrder lines: ${linesErr.message}`);
   }
 
-  // 3. Flip equipment_status to on_rent for active orders. We look up the
-  //    tenant's status keys to find the canonical 'rented' status.
   if (status === "active") {
     await flipEquipmentStatuses(
       supabase,
+      companyId,
       input.lines.map((l) => l.equipment_id),
       "rented",
       input.customer_id,
@@ -91,6 +87,7 @@ export async function createOrder(input: NewOrderInput): Promise<CreatedOrder> {
 
 async function flipEquipmentStatuses(
   supabase: ReturnType<typeof createServerSupabaseClient>,
+  companyId: number,
   equipmentIds: number[],
   targetBehavior: "rented" | "available",
   customerId: number | null,
@@ -104,13 +101,14 @@ async function flipEquipmentStatuses(
     .limit(1);
 
   const statusKey = statuses?.[0]?.key as string | undefined;
-  if (!statusKey) return; // tenant has no status with this behavior; skip
+  if (!statusKey) return;
 
   let customerName: string | null = null;
   if (customerId != null) {
     const { data: c } = await supabase
       .from("customers")
       .select("name")
+      .eq("company_id", companyId)
       .eq("id", customerId)
       .maybeSingle();
     customerName = (c?.name as string | undefined) ?? null;
@@ -118,6 +116,7 @@ async function flipEquipmentStatuses(
 
   await supabase.from("equipment_status").upsert(
     equipmentIds.map((eq) => ({
+      company_id: companyId,
       equipment_id: eq,
       status: statusKey,
       customer_name: customerName,
@@ -129,6 +128,7 @@ async function flipEquipmentStatuses(
 }
 
 export async function updateOrderStatus(
+  companyId: number,
   id: number,
   newStatus: OrderStatus
 ): Promise<void> {
@@ -137,6 +137,7 @@ export async function updateOrderStatus(
   const { data: orderRow, error } = await supabase
     .from("orders")
     .select("id, status, customer_id, rental_start, rental_end")
+    .eq("company_id", companyId)
     .eq("id", id)
     .maybeSingle();
   if (error || !orderRow) throw new Error(`updateOrderStatus: order not found`);
@@ -144,19 +145,21 @@ export async function updateOrderStatus(
   const { data: lineRows } = await supabase
     .from("order_lines")
     .select("equipment_id")
+    .eq("company_id", companyId)
     .eq("order_id", id);
   const equipmentIds = (lineRows ?? []).map((r) => r.equipment_id as number);
 
   const { error: updErr } = await supabase
     .from("orders")
     .update({ status: newStatus, updated_at: new Date().toISOString() })
+    .eq("company_id", companyId)
     .eq("id", id);
   if (updErr) throw new Error(`updateOrderStatus: ${updErr.message}`);
 
-  // Sync equipment_status side-effects
   if (newStatus === "active") {
     await flipEquipmentStatuses(
       supabase,
+      companyId,
       equipmentIds,
       "rented",
       orderRow.customer_id as number,
@@ -164,17 +167,17 @@ export async function updateOrderStatus(
       orderRow.rental_end as string
     );
   } else if (newStatus === "completed" || newStatus === "cancelled") {
-    await flipEquipmentStatuses(supabase, equipmentIds, "available", null, null, null);
+    await flipEquipmentStatuses(supabase, companyId, equipmentIds, "available", null, null, null);
 
     if (newStatus === "completed") {
-      // Append a rental_history row per line so closed-rental revenue reports stay populated.
-      await appendRentalHistory(supabase, id);
+      await appendRentalHistory(supabase, companyId, id);
     }
   }
 }
 
 async function appendRentalHistory(
   supabase: ReturnType<typeof createServerSupabaseClient>,
+  companyId: number,
   orderId: number
 ): Promise<void> {
   const { data: detail } = await supabase
@@ -184,6 +187,7 @@ async function appendRentalHistory(
       customers ( name ),
       order_lines ( equipment_id, rate_type, line_total )
     `)
+    .eq("company_id", companyId)
     .eq("id", orderId)
     .maybeSingle();
   if (!detail) return;
@@ -196,6 +200,7 @@ async function appendRentalHistory(
   };
 
   const rows = (d.order_lines ?? []).map((l) => ({
+    company_id: companyId,
     equipment_id: l.equipment_id,
     status_before: "on_rent",
     status_after: "available",

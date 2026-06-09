@@ -14,16 +14,16 @@ export interface CustomerDedupeKey {
   phone?: string | null;
 }
 
-// Look up by email (case-insensitive), then phone. Returns the customer id
-// when a match is found.
 export async function findExistingCustomer(
   client: SupabaseClient,
+  companyId: number,
   key: CustomerDedupeKey
 ): Promise<number | null> {
   if (key.email && key.email.trim().length > 0) {
     const { data } = await client
       .from("customers")
       .select("id")
+      .eq("company_id", companyId)
       .ilike("email", key.email.trim())
       .limit(1)
       .maybeSingle();
@@ -33,6 +33,7 @@ export async function findExistingCustomer(
     const { data } = await client
       .from("customers")
       .select("id")
+      .eq("company_id", companyId)
       .eq("phone", key.phone.trim())
       .limit(1)
       .maybeSingle();
@@ -41,15 +42,14 @@ export async function findExistingCustomer(
   return null;
 }
 
-// Dedupe-aware insert: returns the existing customer id when one matches
-// by email or phone; otherwise inserts and returns the new id.
 export async function upsertCustomer(
+  companyId: number,
   input: NewCustomerInput,
   client?: SupabaseClient
 ): Promise<{ id: number; created: boolean }> {
   const supabase = client ?? createServerSupabaseClient();
 
-  const existingId = await findExistingCustomer(supabase, {
+  const existingId = await findExistingCustomer(supabase, companyId, {
     email: input.email,
     phone: input.phone,
   });
@@ -58,6 +58,7 @@ export async function upsertCustomer(
   const { data, error } = await supabase
     .from("customers")
     .insert({
+      company_id: companyId,
       name: input.name,
       email: input.email ?? null,
       phone: input.phone ?? null,
@@ -71,11 +72,12 @@ export async function upsertCustomer(
   return { id: data.id as number, created: true };
 }
 
-export async function createCustomer(input: NewCustomerInput): Promise<number> {
+export async function createCustomer(companyId: number, input: NewCustomerInput): Promise<number> {
   const supabase = createServerSupabaseClient();
   const { data, error } = await supabase
     .from("customers")
     .insert({
+      company_id: companyId,
       name: input.name,
       email: input.email ?? null,
       phone: input.phone ?? null,

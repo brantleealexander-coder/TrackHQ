@@ -1,5 +1,6 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { listDocuments } from "@/lib/document-queries";
+import { requireMembership } from "@/lib/auth";
 import DocumentUploader from "@/components/documents/document-uploader";
 import DocumentRowActions from "@/components/documents/document-row-actions";
 
@@ -25,7 +26,8 @@ function mimeLabel(mime: string): string {
 
 export default async function DocumentsPage() {
   noStore();
-  const documents = await listDocuments();
+  const { company_id } = await requireMembership();
+  const documents = await listDocuments(company_id);
 
   return (
     <div className="space-y-8">

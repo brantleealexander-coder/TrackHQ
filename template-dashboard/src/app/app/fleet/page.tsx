@@ -1,6 +1,7 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { getFleet, getStatusCounts, getStatuses } from "@/lib/queries";
 import { computeFleetSummary } from "@/lib/financials";
+import { requireMembership } from "@/lib/auth";
 import FleetTable from "@/components/fleet-table";
 import StatCard from "@/components/stat-card";
 import type { FleetRow } from "@/lib/types";
@@ -10,9 +11,10 @@ export const dynamic = "force-dynamic";
 
 export default async function FleetPage() {
   noStore();
+  const { company_id } = await requireMembership();
   const [fleet, statusCounts, statuses] = await Promise.all([
-    getFleet(),
-    getStatusCounts(),
+    getFleet(company_id),
+    getStatusCounts(company_id),
     getStatuses(),
   ]);
 

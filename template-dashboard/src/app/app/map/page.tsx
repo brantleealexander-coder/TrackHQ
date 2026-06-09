@@ -3,6 +3,7 @@ import { getFleet, getStatuses, getLocations } from "@/lib/queries";
 import { fetchFleetTelematics, isVisionLinkConfigured } from "@/lib/visionlink";
 import { fetchSamsaraAssets, isSamsaraConfigured } from "@/lib/samsara";
 import { getSamsaraDevices } from "@/lib/samsara-queries";
+import { requireMembership } from "@/lib/auth";
 import FleetMap from "@/components/fleet-map";
 import AutoRefresh from "@/components/auto-refresh";
 import { getTenantConfig } from "@/lib/tenant-config";
@@ -11,13 +12,14 @@ export const dynamic = "force-dynamic";
 
 export default async function MapPage() {
   noStore();
+  const { company_id } = await requireMembership();
 
   const [fleet, statuses, locations, telematics, samsaraDevices, samsaraAssets] = await Promise.all([
-    getFleet(),
+    getFleet(company_id),
     getStatuses(),
-    getLocations(),
+    getLocations(company_id),
     isVisionLinkConfigured() ? fetchFleetTelematics().catch(() => null) : Promise.resolve(null),
-    getSamsaraDevices().catch(() => []),
+    getSamsaraDevices(company_id).catch(() => []),
     isSamsaraConfigured() ? fetchSamsaraAssets().catch(() => null) : Promise.resolve(null),
   ]);
 

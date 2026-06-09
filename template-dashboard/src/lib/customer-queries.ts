@@ -14,17 +14,17 @@ export interface CustomerWithStats extends CustomerRow {
   last_rental_date: string | null;
 }
 
-export async function searchCustomers(query: string, limit = 8): Promise<CustomerRow[]> {
+export async function searchCustomers(companyId: number, query: string, limit = 8): Promise<CustomerRow[]> {
   const supabase = createServerSupabaseClient();
   const trimmed = query.trim();
   let q = supabase
     .from("customers")
     .select("id, name, email, phone, company")
+    .eq("company_id", companyId)
     .order("name", { ascending: true })
     .limit(limit);
 
   if (trimmed.length > 0) {
-    // Postgrest 'or' with multiple ilike clauses
     const term = `%${trimmed.replace(/[%_]/g, "")}%`;
     q = q.or(`name.ilike.${term},email.ilike.${term},phone.ilike.${term},company.ilike.${term}`);
   }
@@ -34,23 +34,29 @@ export async function searchCustomers(query: string, limit = 8): Promise<Custome
   return data as CustomerRow[];
 }
 
-export async function getCustomer(id: number): Promise<CustomerRow | null> {
+export async function getCustomer(companyId: number, id: number): Promise<CustomerRow | null> {
   const supabase = createServerSupabaseClient();
   const { data } = await supabase
     .from("customers")
     .select("id, name, email, phone, company")
+    .eq("company_id", companyId)
     .eq("id", id)
     .maybeSingle();
   return (data as CustomerRow | null) ?? null;
 }
 
-export async function listCustomersWithStats(): Promise<CustomerWithStats[]> {
+export async function listCustomersWithStats(companyId: number): Promise<CustomerWithStats[]> {
   const supabase = createServerSupabaseClient();
   const [customersRes, ordersRes] = await Promise.all([
-    supabase.from("customers").select("id, name, email, phone, company").order("name"),
+    supabase
+      .from("customers")
+      .select("id, name, email, phone, company")
+      .eq("company_id", companyId)
+      .order("name"),
     supabase
       .from("orders")
-      .select("customer_id, status, rental_start"),
+      .select("customer_id, status, rental_start")
+      .eq("company_id", companyId),
   ]);
 
   const customers = (customersRes.data ?? []) as CustomerRow[];

@@ -1,7 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-// Catalog row for /book/<slug>. Public-facing — no internal-only fields
-// (no cross-charge flag, no GL code, no internal notes).
+// Catalog row for /book/<slug>. Public-facing — no internal-only fields.
 export interface CatalogUnit {
   id: number;
   gl_code: string;
@@ -26,10 +25,10 @@ interface RawEquipmentRow {
   equipment_status: { status: string }[] | null;
 }
 
-// Returns units whose current status behavior is 'available'. Reserved,
-// rented, and out-of-service units are hidden from the public catalog.
+// Returns units whose current status behavior is 'available'.
 export async function getAvailableCatalog(
-  client: SupabaseClient
+  client: SupabaseClient,
+  companyId: number
 ): Promise<CatalogUnit[]> {
   const [equipmentRes, statusesRes] = await Promise.all([
     client
@@ -40,6 +39,7 @@ export async function getAvailableCatalog(
         categories ( name ),
         equipment_status ( status )
       `)
+      .eq("company_id", companyId)
       .order("equipment_name", { ascending: true }),
     client.from("statuses").select("key, behavior"),
   ]);
@@ -77,6 +77,7 @@ export async function getAvailableCatalog(
 
 export async function getCatalogUnit(
   client: SupabaseClient,
+  companyId: number,
   id: number
 ): Promise<CatalogUnit | null> {
   const { data, error } = await client
@@ -86,6 +87,7 @@ export async function getCatalogUnit(
       rate_daily, rate_weekly, rate_monthly,
       categories ( name )
     `)
+    .eq("company_id", companyId)
     .eq("id", id)
     .maybeSingle();
 
@@ -108,7 +110,7 @@ export interface BookingRequestInput {
   renter_name: string;
   renter_email: string;
   renter_phone: string | null;
-  rental_start: string; // YYYY-MM-DD
+  rental_start: string;
   rental_end: string;
   rate_type: "daily" | "weekly" | "monthly" | null;
   notes: string | null;
@@ -118,11 +120,13 @@ export interface BookingRequestInput {
 
 export async function insertBookingRequest(
   client: SupabaseClient,
+  companyId: number,
   input: BookingRequestInput
 ): Promise<{ id: number }> {
   const { data, error } = await client
     .from("booking_requests")
     .insert({
+      company_id: companyId,
       equipment_id: input.equipment_id,
       renter_name: input.renter_name,
       renter_email: input.renter_email,

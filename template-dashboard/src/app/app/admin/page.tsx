@@ -5,6 +5,7 @@ import {
   getCategories,
   getLocations,
 } from "@/lib/queries";
+import { requireMembership } from "@/lib/auth";
 import StatusForm from "@/components/status-form";
 import AddEquipmentForm from "@/components/add-equipment-form";
 import RemoveEquipmentForm from "@/components/remove-equipment-form";
@@ -14,11 +15,12 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   noStore();
+  const { company_id } = await requireMembership();
   const [equipment, statuses, categories, locations] = await Promise.all([
-    getEquipmentList(),
+    getEquipmentList(company_id),
     getStatuses(),
-    getCategories(),
-    getLocations(),
+    getCategories(company_id),
+    getLocations(company_id),
   ]);
 
   const { terminology } = getTenantConfig();

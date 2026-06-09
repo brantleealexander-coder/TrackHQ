@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-function getSupabase() {
-  const key =
-    process.env.SUPABASE_SERVICE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key);
-}
+import { createServerSupabaseClient } from "@/lib/supabase";
+import { requireMembership } from "@/lib/auth";
 
 export async function POST(request: Request) {
+  const { company_id } = await requireMembership();
+
   const body = await request.json();
   const { equipment_id, date, cost, description, vendor, category, invoice_number } = body;
 
@@ -18,11 +15,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = getSupabase();
+  const supabase = createServerSupabaseClient();
 
   const { data, error } = await supabase
     .from("maintenance_logs")
     .insert({
+      company_id,
       equipment_id: Number(equipment_id),
       date,
       cost: Number(cost) || 0,

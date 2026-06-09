@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { CustomerFork } from "@/lib/registry";
+import type { CustomerCompany } from "@/lib/registry";
 
-export default function BookingHeader({ customer }: { customer: CustomerFork }) {
+export default function BookingHeader({ customer }: { customer: CustomerCompany }) {
   return (
     <header className="border-b border-gray-200 bg-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">

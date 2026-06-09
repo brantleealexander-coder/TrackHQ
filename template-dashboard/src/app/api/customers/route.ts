@@ -1,16 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { searchCustomers } from "@/lib/customer-queries";
 import { createCustomer } from "@/lib/customer-mutations";
+import { requireMembership } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function GET(req: NextRequest) {
+  const { company_id } = await requireMembership();
   const url = new URL(req.url);
   const q = url.searchParams.get("q") ?? "";
   const limit = Math.min(20, parseInt(url.searchParams.get("limit") ?? "8", 10) || 8);
-  const results = await searchCustomers(q, limit);
+  const results = await searchCustomers(company_id, q, limit);
   return NextResponse.json({ customers: results });
 }
 
@@ -23,6 +25,7 @@ interface InboundCustomer {
 }
 
 export async function POST(req: NextRequest) {
+  const { company_id } = await requireMembership();
   let body: InboundCustomer;
   try {
     body = (await req.json()) as InboundCustomer;
@@ -44,7 +47,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const id = await createCustomer({
+    const id = await createCustomer(company_id, {
       name,
       email: email || null,
       phone: phone || null,

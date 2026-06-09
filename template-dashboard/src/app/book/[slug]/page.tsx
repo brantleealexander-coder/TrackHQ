@@ -17,7 +17,7 @@ export default async function BookCatalogPage({
   if (!customer) notFound();
 
   const client = createCustomerClient(customer);
-  const units = await getAvailableCatalog(client);
+  const units = await getAvailableCatalog(client, customer.company_id);
 
   return (
     <>

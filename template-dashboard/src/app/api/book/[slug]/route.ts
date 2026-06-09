@@ -68,12 +68,10 @@ export async function POST(
   const client = createCustomerClient(customer);
 
   try {
-    // Dedupe-or-create the customer in the fork's CRM before writing the
-    // booking_request. If the CRM table is missing on a pre-6 fork this
-    // throws — swallow it so the booking request still goes through.
     let customer_id: number | null = null;
     try {
       const upserted = await upsertCustomer(
+        customer.company_id,
         {
           name: renter_name,
           email: renter_email,
@@ -87,7 +85,7 @@ export async function POST(
       console.warn("[book] customer auto-create skipped:", m);
     }
 
-    const result = await insertBookingRequest(client, {
+    const result = await insertBookingRequest(client, customer.company_id, {
       equipment_id,
       renter_name,
       renter_email,

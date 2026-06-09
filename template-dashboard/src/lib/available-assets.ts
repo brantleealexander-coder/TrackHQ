@@ -23,10 +23,7 @@ interface RawAsset {
   categories: { name: string } | null;
 }
 
-// Returns every unit currently in 'available' state (or with no
-// equipment_status row yet). The asset picker on /app/orders/new wants
-// a wide net — the operator confirms conflicts before submitting.
-export async function getAvailableAssets(): Promise<AvailableAsset[]> {
+export async function getAvailableAssets(companyId: number): Promise<AvailableAsset[]> {
   const supabase = createServerSupabaseClient();
 
   const [{ data: statuses }, { data: equipment }] = await Promise.all([
@@ -39,6 +36,7 @@ export async function getAvailableAssets(): Promise<AvailableAsset[]> {
         categories ( name ),
         equipment_status ( status )
       `)
+      .eq("company_id", companyId)
       .order("equipment_name"),
   ]);
 
@@ -54,8 +52,6 @@ export async function getAvailableAssets(): Promise<AvailableAsset[]> {
   return rows
     .filter((r) => {
       const statusKey = r.equipment_status?.[0]?.status;
-      // Include assets with no status row yet (newly added, behavior unknown)
-      // or whose current status maps to 'available'.
       if (!statusKey) return true;
       return availableKeys.has(statusKey);
     })

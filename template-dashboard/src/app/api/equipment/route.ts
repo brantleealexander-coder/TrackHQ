@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServerSupabaseClient } from "@/lib/supabase";
+import { requireMembership } from "@/lib/auth";
 
-function getSupabase() {
-  const key =
-    process.env.SUPABASE_SERVICE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key);
-}
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const { company_id } = await requireMembership();
+
   const body = await request.json();
   const {
     gl_code,
@@ -29,12 +28,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = getSupabase();
+  const supabase = createServerSupabaseClient();
 
-  // 1. Insert equipment row
   const { data: eq, error: eqErr } = await supabase
     .from("equipment")
     .insert({
+      company_id,
       gl_code: gl_code.trim().toUpperCase(),
       serial_number: serial_number?.trim()?.toUpperCase() || null,
       equipment_name: equipment_name.trim(),
@@ -50,7 +49,6 @@ export async function POST(request: Request) {
     .single();
 
   if (eqErr) {
-    // Duplicate GL code gives a unique constraint error
     if (eqErr.code === "23505") {
       return NextResponse.json(
         { error: `GL code "${gl_code.trim().toUpperCase()}" already exists.` },
@@ -60,9 +58,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: eqErr.message }, { status: 500 });
   }
 
-  // 2. Insert initial equipment_status row using the tenant's first status
-  //    whose behavior is 'available'. Tenants that haven't seeded statuses
-  //    yet will get a clear error.
   const { data: availableStatus, error: lookupErr } = await supabase
     .from("statuses")
     .select("key")
@@ -73,12 +68,13 @@ export async function POST(request: Request) {
 
   if (lookupErr || !availableStatus) {
     return NextResponse.json(
-      { error: "No status with behavior 'available' is configured for this tenant. Seed the statuses table first." },
+      { error: "No status with behavior 'available' is configured. Seed the statuses table first." },
       { status: 500 }
     );
   }
 
   const { error: statusErr } = await supabase.from("equipment_status").insert({
+    company_id,
     equipment_id: eq.id,
     status: availableStatus.key,
     updated_by: "admin",

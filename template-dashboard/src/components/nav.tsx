@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getTenantConfig } from "@/lib/tenant-config";
+import { createSupabaseBrowserAuthClient } from "@/lib/supabase";
 
 interface NavLink {
   href: string;
@@ -114,7 +115,8 @@ export default function Nav() {
   );
 
   async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    const supabase = createSupabaseBrowserAuthClient();
+    await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
   }

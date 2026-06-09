@@ -2,7 +2,7 @@ import { createServerSupabaseClient } from "./supabase";
 import type { FleetRow, EquipmentWithStatus, Status, StatusBehavior } from "./types";
 
 // Fetch all equipment with current status, category, and home location.
-export async function getFleet(): Promise<FleetRow[]> {
+export async function getFleet(companyId: number): Promise<FleetRow[]> {
   const supabase = createServerSupabaseClient();
 
   const { data, error } = await supabase
@@ -20,6 +20,7 @@ export async function getFleet(): Promise<FleetRow[]> {
       )
     `
     )
+    .eq("company_id", companyId)
     .order("gl_code", { ascending: true });
 
   if (error) throw new Error(`getFleet: ${error.message}`);
@@ -51,8 +52,7 @@ export async function getFleet(): Promise<FleetRow[]> {
   }));
 }
 
-// All statuses defined for this tenant. Used to build color maps and
-// behavior lookups in UI code.
+// Statuses are shared across all companies (code-level taxonomy).
 export async function getStatuses(): Promise<Status[]> {
   const supabase = createServerSupabaseClient();
   const { data, error } = await supabase
@@ -78,14 +78,13 @@ export function behaviorOf(
   return byKey.get(statusKey)?.behavior;
 }
 
-// Status counts keyed by status key (caller can look up display name/behavior
-// via getStatuses if needed).
-export async function getStatusCounts(): Promise<Record<string, number>> {
+export async function getStatusCounts(companyId: number): Promise<Record<string, number>> {
   const supabase = createServerSupabaseClient();
 
   const { data, error } = await supabase
     .from("equipment_status")
-    .select("status");
+    .select("status")
+    .eq("company_id", companyId);
 
   if (error) throw new Error(`getStatusCounts: ${error.message}`);
 
@@ -96,10 +95,7 @@ export async function getStatusCounts(): Promise<Record<string, number>> {
   return counts;
 }
 
-// Active rentals = units whose current status has behavior 'rented'.
-// We filter via Postgrest's joined-column syntax: !inner forces the join to
-// participate in the WHERE clause.
-export async function getActiveRentals() {
+export async function getActiveRentals(companyId: number) {
   const supabase = createServerSupabaseClient();
 
   const { data, error } = await supabase
@@ -111,6 +107,7 @@ export async function getActiveRentals() {
       equipment ( rate_daily, rate_weekly, rate_monthly, gl_code, equipment_name )
     `
     )
+    .eq("company_id", companyId)
     .eq("statuses.behavior", "rented")
     .not("rental_start", "is", null);
 
@@ -118,8 +115,7 @@ export async function getActiveRentals() {
   return data ?? [];
 }
 
-// Fetch rental history for revenue calculations.
-export async function getRentalHistory() {
+export async function getRentalHistory(companyId: number) {
   const supabase = createServerSupabaseClient();
 
   const { data, error } = await supabase
@@ -127,14 +123,14 @@ export async function getRentalHistory() {
     .select(
       "equipment_id, revenue_amount, rental_start, rental_end, rate_type, status_after"
     )
+    .eq("company_id", companyId)
     .not("revenue_amount", "is", null);
 
   if (error) throw new Error(`getRentalHistory: ${error.message}`);
   return data ?? [];
 }
 
-// Fetch a single equipment unit with category + home location + current status.
-export async function getUnitDetail(id: number) {
+export async function getUnitDetail(companyId: number, id: number) {
   const supabase = createServerSupabaseClient();
 
   const { data, error } = await supabase
@@ -148,15 +144,15 @@ export async function getUnitDetail(id: number) {
       equipment_status ( status, customer_name, job_po_notes, rate_type, rental_start, rental_end, updated_at )
     `
     )
+    .eq("company_id", companyId)
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
   if (error) throw new Error(`getUnitDetail: ${error.message}`);
   return data;
 }
 
-// Fetch rental history for a single unit, newest first.
-export async function getUnitRentalHistory(equipmentId: number) {
+export async function getUnitRentalHistory(companyId: number, equipmentId: number) {
   const supabase = createServerSupabaseClient();
 
   const { data, error } = await supabase
@@ -164,6 +160,7 @@ export async function getUnitRentalHistory(equipmentId: number) {
     .select(
       "id, status_before, status_after, customer_name, job_po_notes, rate_type, rental_start, rental_end, revenue_amount, recorded_at"
     )
+    .eq("company_id", companyId)
     .eq("equipment_id", equipmentId)
     .order("recorded_at", { ascending: false });
 
@@ -171,13 +168,13 @@ export async function getUnitRentalHistory(equipmentId: number) {
   return data ?? [];
 }
 
-// Fetch maintenance logs for a single unit, newest first.
-export async function getUnitMaintenanceLogs(equipmentId: number) {
+export async function getUnitMaintenanceLogs(companyId: number, equipmentId: number) {
   const supabase = createServerSupabaseClient();
 
   const { data, error } = await supabase
     .from("maintenance_logs")
     .select("id, equipment_id, date, cost, description, vendor, category, invoice_number, created_at, created_by")
+    .eq("company_id", companyId)
     .eq("equipment_id", equipmentId)
     .order("date", { ascending: false });
 
@@ -185,48 +182,48 @@ export async function getUnitMaintenanceLogs(equipmentId: number) {
   return data ?? [];
 }
 
-// All maintenance logs (for financials aggregation).
-export async function getAllMaintenanceLogs() {
+export async function getAllMaintenanceLogs(companyId: number) {
   const supabase = createServerSupabaseClient();
 
   const { data, error } = await supabase
     .from("maintenance_logs")
-    .select("equipment_id, date, cost");
+    .select("equipment_id, date, cost")
+    .eq("company_id", companyId);
 
   if (error) throw new Error(`getAllMaintenanceLogs: ${error.message}`);
   return data ?? [];
 }
 
-// Equipment dropdown for admin pages — id, gl_code, name, plus category name.
-export async function getEquipmentList() {
+export async function getEquipmentList(companyId: number) {
   const supabase = createServerSupabaseClient();
 
   const { data, error } = await supabase
     .from("equipment")
     .select("id, gl_code, equipment_name, category_id, categories ( name )")
+    .eq("company_id", companyId)
     .order("gl_code", { ascending: true });
 
   if (error) throw new Error(`getEquipmentList: ${error.message}`);
   return data ?? [];
 }
 
-// All categories, alphabetized. Replaces the hardcoded DIVISIONS array.
-export async function getCategories() {
+export async function getCategories(companyId: number) {
   const supabase = createServerSupabaseClient();
   const { data, error } = await supabase
     .from("categories")
     .select("id, name")
+    .eq("company_id", companyId)
     .order("name", { ascending: true });
   if (error) throw new Error(`getCategories: ${error.message}`);
   return (data ?? []) as { id: number; name: string }[];
 }
 
-// All locations, alphabetized.
-export async function getLocations() {
+export async function getLocations(companyId: number) {
   const supabase = createServerSupabaseClient();
   const { data, error } = await supabase
     .from("locations")
     .select("id, name, address, latitude, longitude")
+    .eq("company_id", companyId)
     .order("name", { ascending: true });
   if (error) throw new Error(`getLocations: ${error.message}`);
   return (data ?? []) as {

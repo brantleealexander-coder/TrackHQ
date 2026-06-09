@@ -8,6 +8,7 @@ import {
   getStatuses,
 } from "@/lib/queries";
 import { formatCurrency } from "@/lib/financials";
+import { requireMembership } from "@/lib/auth";
 import StatusBadge from "@/components/status-badge";
 import UnitHistory from "@/components/unit-history";
 import type { EquipmentWithStatus } from "@/lib/types";
@@ -21,13 +22,14 @@ export default async function UnitDetailPage({
   params: { id: string };
 }) {
   noStore();
+  const { company_id } = await requireMembership();
   const id = parseInt(params.id, 10);
   if (isNaN(id)) notFound();
 
   const [rawUnit, rentalHistory, maintenanceLogs, statuses] = await Promise.all([
-    getUnitDetail(id).catch(() => null),
-    getUnitRentalHistory(id),
-    getUnitMaintenanceLogs(id),
+    getUnitDetail(company_id, id).catch(() => null),
+    getUnitRentalHistory(company_id, id),
+    getUnitMaintenanceLogs(company_id, id),
     getStatuses(),
   ]);
 

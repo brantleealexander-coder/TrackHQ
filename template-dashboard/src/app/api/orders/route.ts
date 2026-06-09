@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createOrder } from "@/lib/order-mutations";
+import { requireMembership } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,8 @@ interface InboundOrder {
 }
 
 export async function POST(req: NextRequest) {
+  const { company_id } = await requireMembership();
+
   let payload: InboundOrder;
   try {
     payload = (await req.json()) as InboundOrder;
@@ -69,7 +72,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const created = await createOrder({
+    const created = await createOrder(company_id, {
       customer_id,
       rental_start,
       rental_end,

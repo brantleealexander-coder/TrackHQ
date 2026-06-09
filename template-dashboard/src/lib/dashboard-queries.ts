@@ -1,16 +1,12 @@
 import { createServerSupabaseClient } from "./supabase";
 import type { Status } from "./types";
 
-// Snapshot used by the dashboard landing page. All queries run server-side
-// in parallel; if any one fails, that field falls back to zero/empty so the
-// page still renders.
-
 export interface DashboardKpis {
   activeRentalsCount: number;
   pendingRequestsCount: number;
   monthRevenue: number;
   prevMonthRevenue: number;
-  momChangePct: number | null; // null when prev month had no revenue
+  momChangePct: number | null;
 }
 
 export interface DashboardAlert {
@@ -22,7 +18,7 @@ export interface DashboardAlert {
 
 export interface ActivityEvent {
   kind: "order_created" | "request_received" | "rental_closed";
-  at: string; // ISO timestamp
+  at: string;
   title: string;
   detail: string;
   href?: string;
@@ -38,7 +34,7 @@ function monthRange(offsetMonths: number): { start: string; end: string } {
   };
 }
 
-export async function getDashboardKpis(statuses: Status[]): Promise<DashboardKpis> {
+export async function getDashboardKpis(companyId: number, statuses: Status[]): Promise<DashboardKpis> {
   const supabase = createServerSupabaseClient();
   const rentedKeys = statuses.filter((s) => s.behavior === "rented").map((s) => s.key);
 
@@ -47,17 +43,27 @@ export async function getDashboardKpis(statuses: Status[]): Promise<DashboardKpi
 
   const [activeRes, pendingRes, monthRes, prevMonthRes] = await Promise.all([
     rentedKeys.length > 0
-      ? supabase.from("equipment_status").select("equipment_id", { count: "exact", head: true }).in("status", rentedKeys)
+      ? supabase
+          .from("equipment_status")
+          .select("equipment_id", { count: "exact", head: true })
+          .eq("company_id", companyId)
+          .in("status", rentedKeys)
       : Promise.resolve({ count: 0, error: null }),
-    supabase.from("booking_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    supabase
+      .from("booking_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .eq("status", "pending"),
     supabase
       .from("rental_history")
       .select("revenue_amount")
+      .eq("company_id", companyId)
       .gte("rental_start", thisMonth.start)
       .lt("rental_start", thisMonth.end),
     supabase
       .from("rental_history")
       .select("revenue_amount")
+      .eq("company_id", companyId)
       .gte("rental_start", lastMonth.start)
       .lt("rental_start", lastMonth.end),
   ]);
@@ -84,7 +90,7 @@ export async function getDashboardKpis(statuses: Status[]): Promise<DashboardKpi
   };
 }
 
-export async function getDashboardAlerts(statuses: Status[]): Promise<DashboardAlert[]> {
+export async function getDashboardAlerts(companyId: number, statuses: Status[]): Promise<DashboardAlert[]> {
   const supabase = createServerSupabaseClient();
   const today = new Date().toISOString().slice(0, 10);
   const rentedKeys = statuses.filter((s) => s.behavior === "rented").map((s) => s.key);
@@ -95,6 +101,7 @@ export async function getDashboardAlerts(statuses: Status[]): Promise<DashboardA
       ? supabase
           .from("equipment_status")
           .select("equipment_id, customer_name, rental_end, equipment(gl_code, equipment_name)")
+          .eq("company_id", companyId)
           .in("status", rentedKeys)
           .not("rental_end", "is", null)
           .lt("rental_end", today)
@@ -103,6 +110,7 @@ export async function getDashboardAlerts(statuses: Status[]): Promise<DashboardA
     supabase
       .from("booking_requests")
       .select("id, renter_name, equipment(equipment_name)")
+      .eq("company_id", companyId)
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(5),
@@ -110,6 +118,7 @@ export async function getDashboardAlerts(statuses: Status[]): Promise<DashboardA
       ? supabase
           .from("equipment_status")
           .select("equipment_id, equipment(gl_code, equipment_name)")
+          .eq("company_id", companyId)
           .in("status", downKeys)
           .limit(5)
       : Promise.resolve({ data: [], error: null }),
@@ -162,23 +171,26 @@ export async function getDashboardAlerts(statuses: Status[]): Promise<DashboardA
   return alerts;
 }
 
-export async function getRecentActivity(limit = 15): Promise<ActivityEvent[]> {
+export async function getRecentActivity(companyId: number, limit = 15): Promise<ActivityEvent[]> {
   const supabase = createServerSupabaseClient();
 
   const [ordersRes, requestsRes, historyRes] = await Promise.all([
     supabase
       .from("orders")
       .select("id, status, total, created_at, customers(name)")
+      .eq("company_id", companyId)
       .order("created_at", { ascending: false })
       .limit(limit),
     supabase
       .from("booking_requests")
       .select("id, renter_name, source, created_at, equipment(equipment_name)")
+      .eq("company_id", companyId)
       .order("created_at", { ascending: false })
       .limit(limit),
     supabase
       .from("rental_history")
       .select("id, customer_name, revenue_amount, recorded_at, equipment(equipment_name)")
+      .eq("company_id", companyId)
       .order("recorded_at", { ascending: false })
       .limit(limit),
   ]);

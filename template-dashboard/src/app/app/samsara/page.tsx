@@ -1,15 +1,17 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { getSamsaraDevices, getEquipmentOptions } from "@/lib/samsara-queries";
 import { isSamsaraConfigured } from "@/lib/samsara";
+import { requireMembership } from "@/lib/auth";
 import SamsaraDevicesTable from "@/components/samsara-devices-table";
 
 export const dynamic = "force-dynamic";
 
 export default async function SamsaraPage() {
   noStore();
+  const { company_id } = await requireMembership();
   const [devices, equipmentOptions] = await Promise.all([
-    getSamsaraDevices(),
-    getEquipmentOptions(),
+    getSamsaraDevices(company_id),
+    getEquipmentOptions(company_id),
   ]);
   const configured = isSamsaraConfigured();
 

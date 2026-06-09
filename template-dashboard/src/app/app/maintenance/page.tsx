@@ -1,12 +1,14 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { getEquipmentList } from "@/lib/queries";
+import { requireMembership } from "@/lib/auth";
 import MaintenanceForm from "@/components/maintenance-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function MaintenancePage() {
   noStore();
-  const equipment = await getEquipmentList();
+  const { company_id } = await requireMembership();
+  const equipment = await getEquipmentList(company_id);
 
   return (
     <div>

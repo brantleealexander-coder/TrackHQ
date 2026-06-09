@@ -1,20 +1,13 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServerSupabaseClient } from "@/lib/supabase";
 import { calcRevenue } from "@/lib/financials";
-
-// Use service-role key if available (for server-side writes), fall back to anon key.
-// On Vercel: add SUPABASE_SERVICE_KEY only if you want to skip RLS. Since RLS is disabled
-// on these tables, the anon key works fine.
-function getSupabase() {
-  const key =
-    process.env.SUPABASE_SERVICE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key);
-}
+import { requireMembership } from "@/lib/auth";
 
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const { company_id } = await requireMembership();
   const equipmentId = parseInt(params.id, 10);
   if (isNaN(equipmentId)) {
     return NextResponse.json({ error: "Invalid equipment id" }, { status: 400 });
@@ -36,20 +29,19 @@ export async function PATCH(
     return NextResponse.json({ error: "status is required" }, { status: 400 });
   }
 
-  const supabase = getSupabase();
+  const supabase = createServerSupabaseClient();
 
-  // 1. Fetch current equipment_status + equipment rates + the tenant's
-  //    status behavior map (so revenue logic switches on behavior, not on
-  //    hardcoded status names).
   const [currentRes, eqRes, statusesRes] = await Promise.all([
     supabase
       .from("equipment_status")
       .select("status, rate_type, rental_start, rental_end, customer_name, job_po_notes")
+      .eq("company_id", company_id)
       .eq("equipment_id", equipmentId)
       .maybeSingle(),
     supabase
       .from("equipment")
       .select("rate_daily, rate_weekly, rate_monthly")
+      .eq("company_id", company_id)
       .eq("id", equipmentId)
       .single(),
     supabase.from("statuses").select("key, behavior"),
@@ -73,7 +65,6 @@ export async function PATCH(
   const previousBehavior = behaviorByKey.get(current?.status ?? "");
   const newBehavior = behaviorByKey.get(status);
 
-  // 2. Compute revenue if we're closing a rental
   let revenue_amount: number | null = null;
   const wasRented = previousBehavior === "rented";
   const closingRental =
@@ -99,7 +90,6 @@ export async function PATCH(
     }
   }
 
-  // 3. Update equipment_status (seed script guarantees one row per equipment)
   const { error: upsertErr } = await supabase
     .from("equipment_status")
     .update({
@@ -112,13 +102,13 @@ export async function PATCH(
       updated_at: new Date().toISOString(),
       updated_by,
     })
+    .eq("company_id", company_id)
     .eq("equipment_id", equipmentId);
 
   if (upsertErr) {
     return NextResponse.json({ error: upsertErr.message }, { status: 500 });
   }
 
-  // 4. Geocode location and update equipment if address provided
   if (location) {
     try {
       const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -127,7 +117,7 @@ export async function PATCH(
           `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(location)}.json?access_token=${mapboxToken}&limit=1`
         );
         const geoData = await geoRes.json();
-        const coords = geoData?.features?.[0]?.center; // [lng, lat]
+        const coords = geoData?.features?.[0]?.center;
         if (coords) {
           await supabase
             .from("equipment")
@@ -136,14 +126,14 @@ export async function PATCH(
               current_lat: coords[1],
               current_lng: coords[0],
             })
+            .eq("company_id", company_id)
             .eq("id", equipmentId);
         }
       }
     } catch {
-      // Geocoding failure is non-fatal — location just won't update on map
+      // Geocoding failure is non-fatal
     }
   } else if (newBehavior === "available" || newBehavior === "out_of_service") {
-    // Clear location when equipment returns to yard
     await supabase
       .from("equipment")
       .update({
@@ -151,11 +141,12 @@ export async function PATCH(
         current_lat: null,
         current_lng: null,
       })
+      .eq("company_id", company_id)
       .eq("id", equipmentId);
   }
 
-  // 5. Append rental_history row
   const { error: histErr } = await supabase.from("rental_history").insert({
+    company_id,
     equipment_id: equipmentId,
     status_before: current?.status ?? null,
     status_after: status,
@@ -179,23 +170,25 @@ export async function DELETE(
   _request: Request,
   { params }: { params: { id: string } }
 ) {
+  const { company_id } = await requireMembership();
   const equipmentId = parseInt(params.id, 10);
   if (isNaN(equipmentId)) {
     return NextResponse.json({ error: "Invalid equipment id" }, { status: 400 });
   }
 
-  const supabase = getSupabase();
+  const supabase = createServerSupabaseClient();
 
-  // Fetch name for confirmation message before deleting
   const { data: eq } = await supabase
     .from("equipment")
     .select("gl_code, equipment_name")
+    .eq("company_id", company_id)
     .eq("id", equipmentId)
     .single();
 
   const { error } = await supabase
     .from("equipment")
     .delete()
+    .eq("company_id", company_id)
     .eq("id", equipmentId);
 
   if (error) {

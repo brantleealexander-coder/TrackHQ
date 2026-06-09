@@ -1,6 +1,7 @@
 import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { listOrders, countOrdersByStatus, type OrderStatus } from "@/lib/order-queries";
+import { requireMembership } from "@/lib/auth";
 import OrderList from "@/components/orders/order-list";
 
 export const dynamic = "force-dynamic";
@@ -18,12 +19,13 @@ export default async function OrdersPage({
   searchParams: { tab?: string };
 }) {
   noStore();
+  const { company_id } = await requireMembership();
   const activeTab: OrderStatus =
     (TABS.find((t) => t.key === searchParams.tab)?.key as OrderStatus) ?? "active";
 
   const [orders, counts] = await Promise.all([
-    listOrders({ status: activeTab }),
-    countOrdersByStatus(),
+    listOrders(company_id, { status: activeTab }),
+    countOrdersByStatus(company_id),
   ]);
 
   return (

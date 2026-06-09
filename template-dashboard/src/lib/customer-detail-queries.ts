@@ -25,12 +25,13 @@ export interface CustomerProfileWithOrders extends CustomerProfile {
   lifetime_revenue: number;
 }
 
-export async function getCustomerProfile(id: number): Promise<CustomerProfileWithOrders | null> {
+export async function getCustomerProfile(companyId: number, id: number): Promise<CustomerProfileWithOrders | null> {
   const supabase = createServerSupabaseClient();
 
   const { data: customer, error } = await supabase
     .from("customers")
     .select("id, name, email, phone, company, address, notes, created_at")
+    .eq("company_id", companyId)
     .eq("id", id)
     .maybeSingle();
   if (error || !customer) return null;
@@ -41,6 +42,7 @@ export async function getCustomerProfile(id: number): Promise<CustomerProfileWit
       id, status, rental_start, rental_end, total,
       order_lines ( id )
     `)
+    .eq("company_id", companyId)
     .eq("customer_id", id)
     .order("rental_start", { ascending: false });
 

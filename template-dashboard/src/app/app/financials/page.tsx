@@ -15,18 +15,20 @@ import {
   computeMaintenanceSummary,
   computeMaintenanceByUnit,
 } from "@/lib/financials";
+import { requireMembership } from "@/lib/auth";
 import FinancialsGrid from "@/components/financials-grid";
 
 export const dynamic = "force-dynamic";
 
 export default async function FinancialsPage() {
   noStore();
+  const { company_id } = await requireMembership();
   const [fleet, statusCounts, history, activeRentals, maintenanceLogs, statuses] = await Promise.all([
-    getFleet(),
-    getStatusCounts(),
-    getRentalHistory(),
-    getActiveRentals(),
-    getAllMaintenanceLogs(),
+    getFleet(company_id),
+    getStatusCounts(company_id),
+    getRentalHistory(company_id),
+    getActiveRentals(company_id),
+    getAllMaintenanceLogs(company_id),
     getStatuses(),
   ]);
 

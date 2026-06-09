@@ -10,6 +10,7 @@ import {
 } from "@/lib/dashboard-queries";
 import { formatCurrency } from "@/lib/financials";
 import { getTenantConfig } from "@/lib/tenant-config";
+import { requireMembership } from "@/lib/auth";
 import StatCard from "@/components/stat-card";
 
 export const dynamic = "force-dynamic";
@@ -33,13 +34,14 @@ function fmtRelativeTime(iso: string): string {
 
 export default async function DashboardPage() {
   noStore();
-  const { business, terminology } = getTenantConfig();
+  const membership = await requireMembership();
+  const { terminology } = getTenantConfig();
   const statuses = await getStatuses();
 
   const [kpis, alerts, activity] = await Promise.all([
-    getDashboardKpis(statuses),
-    getDashboardAlerts(statuses),
-    getRecentActivity(15),
+    getDashboardKpis(membership.company_id, statuses),
+    getDashboardAlerts(membership.company_id, statuses),
+    getRecentActivity(membership.company_id, 15),
   ]);
 
   return (
@@ -47,7 +49,7 @@ export default async function DashboardPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="mt-1 text-sm text-gray-500">
-          {business.name} · today at a glance
+          {membership.company.name} · today at a glance
         </p>
       </div>
 
