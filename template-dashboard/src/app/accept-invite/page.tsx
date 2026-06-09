@@ -25,6 +25,23 @@ export default function AcceptInvitePage() {
     let cancelled = false;
     (async () => {
       const supabase = createSupabaseBrowserAuthClient();
+
+      // Supabase invite + recovery emails redirect here with tokens in the
+      // URL hash (implicit grant). The browser client auto-detects this when
+      // detectSessionInUrl is true, but a) we can't fully trust that across
+      // every @supabase/ssr version, and b) explicit handling lets us catch
+      // setSession errors instead of silently winding up logged-out.
+      if (typeof window !== "undefined" && window.location.hash) {
+        const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        const access_token = params.get("access_token");
+        const refresh_token = params.get("refresh_token");
+        if (access_token && refresh_token) {
+          await supabase.auth.setSession({ access_token, refresh_token });
+          // Strip the hash so a refresh won't try to re-consume it.
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+      }
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
