@@ -10,7 +10,6 @@ export default async function NewOrderPage() {
   noStore();
   const membership = await requireMembership();
   const assets = await getAvailableAssets(membership.company_id);
-  const canAddCustomer = membership.role === "owner" || membership.role === "admin";
 
   return (
     <div className="space-y-6">
@@ -29,7 +28,7 @@ export default async function NewOrderPage() {
         </p>
       </div>
 
-      <NewOrderForm assets={assets} canAddCustomer={canAddCustomer} />
+      <NewOrderForm assets={assets} />
     </div>
   );
 }

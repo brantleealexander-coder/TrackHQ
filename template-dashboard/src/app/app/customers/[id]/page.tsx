@@ -42,8 +42,6 @@ export default async function CustomerDetailPage({
   const customer = await getCustomerProfile(membership.company_id, id);
   if (!customer) notFound();
 
-  const canEdit = membership.role === "owner" || membership.role === "admin";
-
   return (
     <div className="space-y-8">
       <Link
@@ -79,7 +77,7 @@ export default async function CustomerDetailPage({
         <h2 className="mb-5 text-xs font-semibold uppercase tracking-wider text-gray-500">
           Contact info & notes
         </h2>
-        <CustomerContactForm customer={customer} canEdit={canEdit} />
+        <CustomerContactForm customer={customer} />
       </section>
 
       {/* Order history */}
