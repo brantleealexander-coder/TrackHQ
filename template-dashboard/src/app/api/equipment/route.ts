@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { requireMembership } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
+// Adding equipment includes setting daily / weekly / monthly rates —
+// pricing decisions belong to Admin+. Members can still update status
+// on existing equipment via the PATCH route.
 export async function POST(request: Request) {
-  const { company_id } = await requireMembership();
+  const { company_id } = await requireRole(["owner", "admin"]);
 
   const body = await request.json();
   const {

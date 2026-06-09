@@ -4,7 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CustomerProfile } from "@/lib/customer-detail-queries";
 
-export default function CustomerContactForm({ customer }: { customer: CustomerProfile }) {
+interface CustomerContactFormProps {
+  customer: CustomerProfile;
+  canEdit?: boolean;
+}
+
+export default function CustomerContactForm({ customer, canEdit = true }: CustomerContactFormProps) {
   const router = useRouter();
   const [form, setForm] = useState({
     name: customer.name,
@@ -46,6 +51,24 @@ export default function CustomerContactForm({ customer }: { customer: CustomerPr
     }
   }
 
+  if (!canEdit) {
+    return (
+      <div className="space-y-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <ReadOnly label="Name" value={form.name} />
+          <ReadOnly label="Company" value={form.company} />
+          <ReadOnly label="Email" value={form.email} />
+          <ReadOnly label="Phone" value={form.phone} />
+        </div>
+        <ReadOnly label="Address" value={form.address} />
+        <ReadOnly label="Notes" value={form.notes} multiline />
+        <p className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+          Editing customer records requires Admin access. Ask an owner or admin to make changes.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -77,6 +100,20 @@ export default function CustomerContactForm({ customer }: { customer: CustomerPr
         </button>
         {saved === "ok" && <span className="text-xs text-emerald-600">Saved.</span>}
         {saved === "err" && <span className="text-xs text-red-600">Save failed.</span>}
+      </div>
+    </div>
+  );
+}
+
+function ReadOnly({ label, value, multiline = false }: { label: string; value: string; multiline?: boolean }) {
+  return (
+    <div className="block">
+      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500">{label}</span>
+      <div className={
+        "min-h-[2.25rem] w-full rounded-lg border border-gray-200 bg-gray-50/60 px-3 py-2 text-sm text-gray-800 " +
+        (multiline ? "whitespace-pre-wrap" : "")
+      }>
+        {value.trim() ? value : <span className="text-gray-400">—</span>}
       </div>
     </div>
   );

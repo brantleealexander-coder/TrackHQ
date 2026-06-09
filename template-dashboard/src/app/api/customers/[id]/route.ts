@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { requireMembership } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const { company_id } = await requireMembership();
+  // Editing customer contact info, notes, or billing — Admin+ only.
+  const { company_id } = await requireRole(["owner", "admin"]);
   const id = parseInt(params.id, 10);
   if (Number.isNaN(id) || id <= 0) {
     return NextResponse.json({ error: "Bad id" }, { status: 400 });

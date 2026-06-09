@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { calcRevenue } from "@/lib/financials";
-import { requireMembership } from "@/lib/auth";
+import { requireMembership, requireRole } from "@/lib/auth";
 
 export async function PATCH(
   request: Request,
@@ -166,11 +166,14 @@ export async function PATCH(
   return NextResponse.json({ ok: true, revenue_amount });
 }
 
+// Removing equipment is destructive and affects financial history —
+// Admin+ only. PATCH (status updates, customer/job tags) stays open to
+// Members because that's day-to-day yard operations.
 export async function DELETE(
   _request: Request,
   { params }: { params: { id: string } }
 ) {
-  const { company_id } = await requireMembership();
+  const { company_id } = await requireRole(["owner", "admin"]);
   const equipmentId = parseInt(params.id, 10);
   if (isNaN(equipmentId)) {
     return NextResponse.json({ error: "Invalid equipment id" }, { status: 400 });

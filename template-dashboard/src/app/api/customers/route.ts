@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { searchCustomers } from "@/lib/customer-queries";
 import { createCustomer } from "@/lib/customer-mutations";
-import { requireMembership } from "@/lib/auth";
+import { requireMembership, requireRole } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -24,8 +24,12 @@ interface InboundCustomer {
   address: unknown;
 }
 
+// Creating customer records — and the contact / billing info that goes with
+// them — is restricted to Admin+. Members can still SELECT existing
+// customers from the order picker; if a new prospect needs to be added,
+// they ask an admin or have the front-office add the row.
 export async function POST(req: NextRequest) {
-  const { company_id } = await requireMembership();
+  const { company_id } = await requireRole(["owner", "admin"]);
   let body: InboundCustomer;
   try {
     body = (await req.json()) as InboundCustomer;

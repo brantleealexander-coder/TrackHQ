@@ -9,6 +9,7 @@ type RateType = "daily" | "weekly" | "monthly";
 
 interface NewOrderFormProps {
   assets: AvailableAsset[];
+  canAddCustomer?: boolean;
 }
 
 interface LineItem {
@@ -51,7 +52,7 @@ function defaultRate(asset: AvailableAsset, days: number): RateType {
   return "monthly";
 }
 
-export default function NewOrderForm({ assets }: NewOrderFormProps) {
+export default function NewOrderForm({ assets, canAddCustomer = true }: NewOrderFormProps) {
   const router = useRouter();
 
   // Customer picker state
@@ -275,28 +276,36 @@ export default function NewOrderForm({ assets }: NewOrderFormProps) {
               </div>
               {customerSearching && <p className="text-xs text-gray-400">Searching…</p>}
 
-              <button
-                onClick={() => setShowAddCustomer((s) => !s)}
-                className="text-sm font-medium text-brand-600 hover:text-brand-700"
-              >
-                {showAddCustomer ? "Cancel" : "+ Add new customer"}
-              </button>
-
-              {showAddCustomer && (
-                <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50/40 p-4">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <Input label="Name *" value={newCustomer.name} onChange={(v) => setNewCustomer({ ...newCustomer, name: v })} />
-                    <Input label="Company" value={newCustomer.company} onChange={(v) => setNewCustomer({ ...newCustomer, company: v })} />
-                    <Input label="Email" value={newCustomer.email} onChange={(v) => setNewCustomer({ ...newCustomer, email: v })} type="email" />
-                    <Input label="Phone" value={newCustomer.phone} onChange={(v) => setNewCustomer({ ...newCustomer, phone: v })} type="tel" />
-                  </div>
+              {canAddCustomer ? (
+                <>
                   <button
-                    onClick={createNewCustomer}
-                    className="rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white hover:bg-gray-800"
+                    onClick={() => setShowAddCustomer((s) => !s)}
+                    className="text-sm font-medium text-brand-600 hover:text-brand-700"
                   >
-                    Save customer
+                    {showAddCustomer ? "Cancel" : "+ Add new customer"}
                   </button>
-                </div>
+
+                  {showAddCustomer && (
+                    <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50/40 p-4">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <Input label="Name *" value={newCustomer.name} onChange={(v) => setNewCustomer({ ...newCustomer, name: v })} />
+                        <Input label="Company" value={newCustomer.company} onChange={(v) => setNewCustomer({ ...newCustomer, company: v })} />
+                        <Input label="Email" value={newCustomer.email} onChange={(v) => setNewCustomer({ ...newCustomer, email: v })} type="email" />
+                        <Input label="Phone" value={newCustomer.phone} onChange={(v) => setNewCustomer({ ...newCustomer, phone: v })} type="tel" />
+                      </div>
+                      <button
+                        onClick={createNewCustomer}
+                        className="rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white hover:bg-gray-800"
+                      >
+                        Save customer
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                  Customer not in the system yet? Ask an owner or admin to add them first.
+                </p>
               )}
             </div>
           )}
