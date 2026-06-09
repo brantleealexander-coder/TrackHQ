@@ -1,4 +1,4 @@
-import Nav from "@/components/nav";
+import DashboardShell from "@/components/dashboard-shell";
 import ChatWidget from "@/components/chat-widget";
 import { getTenantConfig } from "@/lib/tenant-config";
 
@@ -9,10 +9,9 @@ export default function DashboardLayout({
 }) {
   const { features } = getTenantConfig();
   return (
-    <div className="flex min-h-screen">
-      <Nav />
-      <main className="flex-1 p-8 overflow-auto bg-gray-50">{children}</main>
+    <>
+      <DashboardShell>{children}</DashboardShell>
       {features.chatbot && <ChatWidget />}
-    </div>
+    </>
   );
 }

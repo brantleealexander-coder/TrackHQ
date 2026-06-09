@@ -133,8 +133,8 @@ export default function FinancialsGrid({
       {overdue.length > 0 && (
         <section>
           <SectionHeader title={`Overdue rentals · ${overdue.length}`} accent="danger" />
-          <div className="overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-2xl border border-red-200 bg-white shadow-sm">
+            <table className="w-full min-w-[640px] text-sm">
               <thead className="bg-red-50/60">
                 <tr className="border-b border-red-100 text-left text-[11px] font-semibold uppercase tracking-wider text-red-700">
                   <th className="px-4 py-2.5">GL Code</th>
@@ -164,8 +164,8 @@ export default function FinancialsGrid({
       {revenueByUnit.length > 0 && (
         <section>
           <SectionHeader title="Performance by unit · all time" />
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <table className="w-full min-w-[640px] text-sm">
               <thead className="bg-gray-50/80">
                 <tr className="border-b border-gray-200 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                   <th className="px-4 py-2.5">#</th>

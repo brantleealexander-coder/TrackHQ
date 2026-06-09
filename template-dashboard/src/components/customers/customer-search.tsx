@@ -49,8 +49,8 @@ export default function CustomerSearch({ customers }: { customers: CustomerWithS
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-gray-50/80">
               <tr className="border-b border-gray-200 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                 <th className="px-4 py-2.5">Name</th>

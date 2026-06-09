@@ -93,7 +93,8 @@ export default async function CustomerDetailPage({
             </p>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-y border-gray-100 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                 <th className="px-6 py-2.5">#</th>
@@ -126,7 +127,8 @@ export default async function CustomerDetailPage({
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         )}
       </section>
     </div>

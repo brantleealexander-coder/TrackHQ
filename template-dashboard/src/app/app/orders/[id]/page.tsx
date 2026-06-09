@@ -103,14 +103,15 @@ export default async function OrderDetailPage({
       </section>
 
       {/* Line items */}
-      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <header className="flex items-center justify-between px-6 py-4">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Line items</h2>
           <span className="rounded-md bg-gray-100 px-2 py-0.5 text-[11px] font-medium tabular-nums text-gray-600">
             {order.lines.length}
           </span>
         </header>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="border-y border-gray-100 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">
               <th className="px-6 py-2.5">GL Code</th>
@@ -153,6 +154,7 @@ export default async function OrderDetailPage({
             </tr>
           </tfoot>
         </table>
+        </div>
       </section>
 
       {/* Notes */}
