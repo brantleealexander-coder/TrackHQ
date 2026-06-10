@@ -152,7 +152,7 @@ export async function getDashboardAlerts(companyId: number, statuses: Status[]):
       kind: "request",
       title: `New booking request from ${row.renter_name}`,
       detail: row.equipment?.equipment_name ?? "",
-      href: `/app/orders`,
+      href: `/app/orders?tab=pending`,
     });
   }
 
@@ -225,7 +225,7 @@ export async function getRecentActivity(companyId: number, limit = 15): Promise<
       at: row.created_at,
       title: `${row.source === "voice" ? "Voice" : "Web"} request from ${row.renter_name}`,
       detail: row.equipment?.equipment_name ?? "",
-      href: `/app/orders`,
+      href: `/app/orders?tab=pending`,
     });
   }
 

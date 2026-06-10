@@ -3,8 +3,11 @@
 -- Creates all tables and indexes for the AI Receptionist
 
 -- Call logs: one row per call
+-- company_id scopes the row to a tenant; recording_url comes from VAPI's
+-- end-of-call-report artifact and is rendered in /app/calls/[id].
 CREATE TABLE IF NOT EXISTS call_logs (
   id                BIGSERIAL PRIMARY KEY,
+  company_id        BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   vapi_call_id      TEXT UNIQUE,
   caller_phone      TEXT,
   caller_name       TEXT,
@@ -13,6 +16,7 @@ CREATE TABLE IF NOT EXISTS call_logs (
   duration_seconds  INTEGER,
   summary           TEXT,
   transcript        JSONB,
+  recording_url     TEXT,
   outcome           TEXT DEFAULT 'inquiry',
   created_at        TIMESTAMPTZ DEFAULT NOW()
 );
@@ -44,6 +48,7 @@ CREATE TABLE IF NOT EXISTS messages (
 -- Indexes for common queries
 CREATE INDEX IF NOT EXISTS idx_call_logs_phone       ON call_logs(caller_phone);
 CREATE INDEX IF NOT EXISTS idx_call_logs_created_at  ON call_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_call_logs_company     ON call_logs(company_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_appointments_phone    ON appointments(caller_phone);
 CREATE INDEX IF NOT EXISTS idx_appointments_status   ON appointments(status);
 CREATE INDEX IF NOT EXISTS idx_appointments_start    ON appointments(start_time);

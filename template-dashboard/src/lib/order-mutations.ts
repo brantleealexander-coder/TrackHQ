@@ -15,6 +15,7 @@ export interface NewOrderInput {
   notes?: string | null;
   source?: OrderSource;
   status?: Exclude<OrderStatus, "cancelled">;
+  booking_request_id?: number | null;
   lines: NewOrderLineInput[];
 }
 
@@ -44,6 +45,7 @@ export async function createOrder(companyId: number, input: NewOrderInput): Prom
       total,
       source,
       notes: input.notes ?? null,
+      booking_request_id: input.booking_request_id ?? null,
     })
     .select("id")
     .single();
@@ -80,6 +82,16 @@ export async function createOrder(companyId: number, input: NewOrderInput): Prom
       input.rental_start,
       input.rental_end
     );
+  } else if (status === "upcoming") {
+    await flipEquipmentStatuses(
+      supabase,
+      companyId,
+      input.lines.map((l) => l.equipment_id),
+      "reserved",
+      input.customer_id,
+      input.rental_start,
+      input.rental_end
+    );
   }
 
   return { id: orderId, total };
@@ -89,7 +101,7 @@ async function flipEquipmentStatuses(
   supabase: ReturnType<typeof createServerSupabaseClient>,
   companyId: number,
   equipmentIds: number[],
-  targetBehavior: "rented" | "available",
+  targetBehavior: "rented" | "available" | "reserved",
   customerId: number | null,
   rentalStart: string | null,
   rentalEnd: string | null

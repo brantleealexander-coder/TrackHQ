@@ -1,12 +1,20 @@
 import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { listOrders, countOrdersByStatus, type OrderStatus } from "@/lib/order-queries";
+import {
+  listPendingBookingRequests,
+  countPendingBookingRequests,
+} from "@/lib/booking-request-queries";
 import { requireMembership } from "@/lib/auth";
 import OrderList from "@/components/orders/order-list";
+import PendingList from "@/components/orders/pending-list";
 
 export const dynamic = "force-dynamic";
 
-const TABS: { key: OrderStatus; label: string }[] = [
+type TabKey = OrderStatus | "pending";
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "pending", label: "Pending" },
   { key: "active", label: "Active" },
   { key: "upcoming", label: "Upcoming" },
   { key: "completed", label: "Completed" },
@@ -20,13 +28,24 @@ export default async function OrdersPage({
 }) {
   noStore();
   const { company_id } = await requireMembership();
-  const activeTab: OrderStatus =
-    (TABS.find((t) => t.key === searchParams.tab)?.key as OrderStatus) ?? "active";
+  const activeTab: TabKey =
+    (TABS.find((t) => t.key === searchParams.tab)?.key as TabKey) ?? "active";
 
-  const [orders, counts] = await Promise.all([
-    listOrders(company_id, { status: activeTab }),
+  const [orders, orderCounts, pending, pendingCount] = await Promise.all([
+    activeTab !== "pending"
+      ? listOrders(company_id, { status: activeTab })
+      : Promise.resolve([]),
     countOrdersByStatus(company_id),
+    activeTab === "pending"
+      ? listPendingBookingRequests(company_id)
+      : Promise.resolve([]),
+    countPendingBookingRequests(company_id),
   ]);
+
+  const counts: Record<TabKey, number> = {
+    pending: pendingCount,
+    ...orderCounts,
+  };
 
   return (
     <div className="space-y-6">
@@ -49,15 +68,16 @@ export default async function OrdersPage({
         </Link>
       </div>
 
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="flex gap-2 overflow-x-auto border-b border-gray-200">
         {TABS.map((tab) => {
           const active = tab.key === activeTab;
+          const isPendingTab = tab.key === "pending";
           return (
             <Link
               key={tab.key}
               href={`/app/orders?tab=${tab.key}`}
               className={
-                "relative -mb-px flex items-center gap-2 border-b-2 px-3 pb-2.5 pt-1 text-sm font-medium transition-colors " +
+                "relative -mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-3 pb-2.5 pt-1 text-sm font-medium transition-colors " +
                 (active
                   ? "border-brand-500 text-gray-900"
                   : "border-transparent text-gray-500 hover:border-gray-200 hover:text-gray-700")
@@ -67,7 +87,13 @@ export default async function OrdersPage({
               <span
                 className={
                   "rounded-md px-1.5 py-0.5 text-[10px] font-semibold tabular-nums " +
-                  (active ? "bg-brand-50 text-brand-700" : "bg-gray-100 text-gray-500")
+                  (active
+                    ? isPendingTab
+                      ? "bg-amber-50 text-amber-700"
+                      : "bg-brand-50 text-brand-700"
+                    : isPendingTab && counts[tab.key] > 0
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-gray-100 text-gray-500")
                 }
               >
                 {counts[tab.key] ?? 0}
@@ -77,7 +103,11 @@ export default async function OrdersPage({
         })}
       </div>
 
-      <OrderList orders={orders} />
+      {activeTab === "pending" ? (
+        <PendingList rows={pending} />
+      ) : (
+        <OrderList orders={orders} />
+      )}
     </div>
   );
 }

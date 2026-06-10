@@ -96,3 +96,90 @@ export async function sendLeadNotification(payload: LeadEmailPayload): Promise<v
     text: renderLeadText(payload),
   });
 }
+
+interface BookingConfirmationPayload {
+  to: string;
+  business_name: string;
+  customer_name: string;
+  asset_name: string;
+  rental_start: string;
+  rental_end: string;
+  total: number;
+  ref_number: string;
+  contact_phone?: string;
+}
+
+function fmtDate(iso: string): string {
+  return new Date(iso + "T00:00:00").toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function fmtMoney(n: number): string {
+  return "$" + Math.round(n).toLocaleString("en-US");
+}
+
+function renderConfirmationHtml(p: BookingConfirmationPayload): string {
+  return `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#111827;max-width:560px;">
+      <p style="font-size:13px;color:#F37535;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin:0 0 8px 0;">Confirmed</p>
+      <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:700;color:#111827;">Your booking is set, ${escape(p.customer_name)}.</h1>
+      <p style="margin:0 0 22px 0;font-size:15px;color:#4b5563;">Thanks for choosing ${escape(p.business_name)}. Here are the details:</p>
+      <table style="border-collapse:collapse;width:100%;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+        <tbody>
+          <tr><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;width:140px;">Asset</td><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;font-size:14px;font-weight:600;color:#111827;">${escape(p.asset_name)}</td></tr>
+          <tr><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Start</td><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;">${escape(fmtDate(p.rental_start))}</td></tr>
+          <tr><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">End</td><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;">${escape(fmtDate(p.rental_end))}</td></tr>
+          <tr><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Reference</td><td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;font-family:ui-monospace,monospace;font-size:14px;color:#111827;">${escape(p.ref_number)}</td></tr>
+          <tr><td style="padding:14px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Total</td><td style="padding:14px 16px;font-size:18px;font-weight:700;color:#111827;">${fmtMoney(p.total)}</td></tr>
+        </tbody>
+      </table>
+      <p style="margin:24px 0 8px 0;font-size:14px;color:#4b5563;">
+        ${p.contact_phone ? `Questions? Call us at <a style="color:#F37535;text-decoration:none;font-weight:600;" href="tel:${escape(p.contact_phone)}">${escape(p.contact_phone)}</a>.` : "Reply to this email if anything looks off."}
+      </p>
+      <p style="margin:0;font-size:14px;color:#4b5563;">See you soon.</p>
+      <p style="margin-top:18px;font-size:14px;color:#111827;font-weight:600;">${escape(p.business_name)}</p>
+    </div>
+  `;
+}
+
+function renderConfirmationText(p: BookingConfirmationPayload): string {
+  const lines = [
+    `Your booking is set, ${p.customer_name}.`,
+    ``,
+    `Thanks for choosing ${p.business_name}. Here are the details:`,
+    ``,
+    `Asset:     ${p.asset_name}`,
+    `Start:     ${fmtDate(p.rental_start)}`,
+    `End:       ${fmtDate(p.rental_end)}`,
+    `Reference: ${p.ref_number}`,
+    `Total:     ${fmtMoney(p.total)}`,
+    ``,
+  ];
+  if (p.contact_phone) lines.push(`Questions? Call us at ${p.contact_phone}.`);
+  else lines.push(`Reply to this email if anything looks off.`);
+  lines.push(``, `See you soon.`, p.business_name);
+  return lines.join("\n");
+}
+
+export async function sendBookingConfirmation(payload: BookingConfirmationPayload): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn(
+      "[email] RESEND_API_KEY not set; booking-confirmation skipped:",
+      JSON.stringify({ to: payload.to, ref: payload.ref_number })
+    );
+    return;
+  }
+  const resend = new Resend(apiKey);
+  await resend.emails.send({
+    from: fromAddress(),
+    to: payload.to,
+    subject: `Your ${payload.business_name} booking is confirmed`,
+    html: renderConfirmationHtml(payload),
+    text: renderConfirmationText(payload),
+  });
+}

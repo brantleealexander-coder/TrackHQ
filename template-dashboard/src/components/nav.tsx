@@ -11,6 +11,7 @@ interface NavLink {
   label: string;
   feature?: "samsara" | "visionlink" | "quickbooks";
   icon: React.ReactNode;
+  badge?: number;
 }
 
 function Icon({ children }: { children: React.ReactNode }) {
@@ -49,6 +50,11 @@ const MAIN_LINKS: NavLink[] = [
     href: "/app/customers",
     label: "Customers",
     icon: <Icon><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0" /><circle cx="17" cy="9.5" r="2.5" /><path d="M21.5 18a4.5 4.5 0 0 0-5.5-4.4" /></Icon>,
+  },
+  {
+    href: "/app/calls",
+    label: "Calls",
+    icon: <Icon><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></Icon>,
   },
   {
     href: "/app/documents",
@@ -110,13 +116,25 @@ function operationsLinks(assetPlural: string): NavLink[] {
   ];
 }
 
-export default function Nav() {
+interface NavProps {
+  pendingCount?: number;
+}
+
+export default function Nav({ pendingCount = 0 }: NavProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const { business, features, terminology } = getTenantConfig();
 
   const operations = operationsLinks(terminology.asset_plural).filter(
     (l) => !l.feature || features[l.feature]
+  );
+
+  // Tag the Orders link with the pending count so NavSection can render the
+  // amber attention badge.
+  const mainLinks = MAIN_LINKS.map((l) =>
+    l.href === "/app/orders" && pendingCount > 0
+      ? { ...l, badge: pendingCount }
+      : l
   );
 
   async function handleLogout() {
@@ -168,7 +186,7 @@ export default function Nav() {
       </div>
 
       {/* MAIN section */}
-      <NavSection label="Main" links={MAIN_LINKS} pathname={pathname} />
+      <NavSection label="Main" links={mainLinks} pathname={pathname} />
 
       <div className="my-2 mx-3 border-t border-gray-100" />
 
@@ -228,7 +246,12 @@ function NavSection({
                   <span className={active ? "text-brand-600" : "text-gray-400"}>
                     {link.icon}
                   </span>
-                  {link.label}
+                  <span className="flex-1">{link.label}</span>
+                  {link.badge && link.badge > 0 ? (
+                    <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-100 px-1.5 text-[10px] font-semibold tabular-nums text-amber-700 ring-1 ring-amber-200">
+                      {link.badge}
+                    </span>
+                  ) : null}
                 </Link>
               </li>
             );

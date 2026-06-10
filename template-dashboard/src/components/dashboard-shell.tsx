@@ -7,9 +7,10 @@ import Nav from "@/components/nav";
 
 interface DashboardShellProps {
   children: React.ReactNode;
+  pendingCount?: number;
 }
 
-export default function DashboardShell({ children }: DashboardShellProps) {
+export default function DashboardShell({ children, pendingCount = 0 }: DashboardShellProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -109,7 +110,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
-        <Nav />
+        <Nav pendingCount={pendingCount} />
       </div>
 
       <main className="min-w-0 flex-1 overflow-auto bg-gray-50 p-4 sm:p-6 lg:p-8">

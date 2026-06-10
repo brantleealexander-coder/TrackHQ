@@ -16,6 +16,8 @@ def save_call_report(
     summary: str = None,
     transcript=None,
     outcome: str = "inquiry",
+    company_id: int = None,
+    recording_url: str = None,
 ) -> dict:
     """Insert a call log row into Supabase. Returns the inserted row or {} on failure."""
     if supabase is None:
@@ -24,6 +26,8 @@ def save_call_report(
 
     # Build row with only non-empty fields to avoid overwriting defaults
     row = {"outcome": outcome}
+    if company_id is not None:
+        row["company_id"] = company_id
     if vapi_call_id:
         row["vapi_call_id"] = vapi_call_id
     if caller_phone:
@@ -40,6 +44,8 @@ def save_call_report(
         row["summary"] = summary
     if transcript is not None:
         row["transcript"] = transcript
+    if recording_url:
+        row["recording_url"] = recording_url
 
     try:
         result = supabase.table("call_logs").insert(row).execute()

@@ -1,5 +1,5 @@
 import { unstable_noStore as noStore } from "next/cache";
-import { getCalendarOrders } from "@/lib/calendar-queries";
+import { getCalendarData } from "@/lib/calendar-queries";
 import { requireMembership } from "@/lib/auth";
 import CalendarView from "@/components/calendar/calendar-view";
 
@@ -18,17 +18,17 @@ export default async function CalendarPage() {
   const from = ymd(new Date(now.getFullYear(), now.getMonth(), 1));
   const to = ymd(new Date(now.getFullYear(), now.getMonth() + 2, 0));
 
-  const orders = await getCalendarOrders(company_id, from, to);
+  const { orders, pending } = await getCalendarData(company_id, from, to);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
         <p className="mt-1 text-sm text-gray-500">
-          This month and next — orders starting, ending, or in progress.
+          This month and next — orders starting, ending, or in progress. Pending bookings shown with an amber ring.
         </p>
       </div>
-      <CalendarView orders={orders} monthsToShow={2} />
+      <CalendarView orders={orders} pending={pending} monthsToShow={2} />
     </div>
   );
 }

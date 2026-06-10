@@ -501,14 +501,18 @@ async def handle_end_of_call_report(message: dict):
     # Transcript — prefer structured messages, fall back to plain text
     transcript = artifact.get("messages") or artifact.get("transcript") or None
 
+    # Recording URL — VAPI puts it in artifact.recordingUrl; fall back to
+    # message.recordingUrl for older payload shapes.
+    recording_url = artifact.get("recordingUrl") or message.get("recordingUrl") or None
+
     # Outcome from analysis
     outcome = "inquiry"
     if analysis:
         outcome = analysis.get("structuredData", {}).get("outcome", "inquiry") or "inquiry"
 
     logger.info(
-        "[OK] webhook: end-of-call phone=%s name=%s duration=%s outcome=%s",
-        caller_phone, caller_name, duration_seconds, outcome
+        "[OK] webhook: end-of-call phone=%s name=%s duration=%s outcome=%s recording=%s",
+        caller_phone, caller_name, duration_seconds, outcome, bool(recording_url)
     )
 
     save_call_report(
@@ -521,6 +525,8 @@ async def handle_end_of_call_report(message: dict):
         summary=summary,
         transcript=transcript,
         outcome=outcome,
+        company_id=settings.demo_company_id,
+        recording_url=recording_url,
     )
 
 
