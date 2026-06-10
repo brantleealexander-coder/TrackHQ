@@ -663,8 +663,20 @@ async def tool_check_asset_availability(params: dict, message: dict) -> str:
     if not supabase:
         return "I can't check inventory right now."
 
-    category = (params.get("category") or "").strip().lower()
-    asset_query = (params.get("assetQuery") or "").strip().lower()
+    # Be forgiving with how the model phrases the search term. Callers say
+    # "excavators" (plural) when the equipment_name is "CAT 314 Excavator"
+    # (singular), and the model sometimes puts the type ("excavator") in
+    # `category` even though the categories table uses broader names like
+    # "Heavy Equipment". We strip a trailing 's' for cheap pluralization
+    # and check the term against equipment_name + category_name + gl_code.
+    def _normalize(q: str) -> str:
+        q = q.strip().lower()
+        if len(q) > 3 and q.endswith("s"):
+            q = q[:-1]
+        return q
+
+    category = _normalize(params.get("category") or "")
+    asset_query = _normalize(params.get("assetQuery") or "")
 
     available_keys = _available_status_keys(supabase)
     if not available_keys:
@@ -693,9 +705,12 @@ async def tool_check_asset_availability(params: dict, message: dict) -> str:
             continue
         cat_name = ((r.get("categories") or {}).get("name") or "").lower()
         name = (r.get("equipment_name") or "").lower()
-        if category and category not in cat_name:
+        gl = (r.get("gl_code") or "").lower()
+        # `category` may match either a real category row OR an equipment
+        # type word in the name ("excavator"); accept either.
+        if category and category not in cat_name and category not in name:
             continue
-        if asset_query and asset_query not in name and asset_query not in (r.get("gl_code") or "").lower():
+        if asset_query and asset_query not in name and asset_query not in gl:
             continue
         matches.append(r)
 
@@ -725,6 +740,10 @@ async def tool_quote_rental_rate(params: dict, message: dict) -> str:
     asset_name = (params.get("assetName") or "").strip()
     rate_type = (params.get("rateType") or "").strip().lower()
     duration_days = params.get("durationDays")
+
+    # Strip trailing plural 's' so "excavators" still matches "Excavator".
+    if len(asset_name) > 3 and asset_name.lower().endswith("s"):
+        asset_name = asset_name[:-1]
 
     if rate_type not in ("daily", "weekly", "monthly"):
         return "I need to know if you want daily, weekly, or monthly pricing."
