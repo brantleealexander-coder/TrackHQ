@@ -20,7 +20,7 @@ const tiers: Tier[] = [
     description: "Get on TrackHQ with the core dashboard and a hosted booking page. Perfect for a single yard or location.",
     features: [
       "Live inventory dashboard",
-      "Hosted booking page (trackhq.com/book/yours)",
+      "Hosted booking page (trackhq.tech/book/yours)",
       "Maintenance + rental history",
       "Standard email support",
       "One operator login",

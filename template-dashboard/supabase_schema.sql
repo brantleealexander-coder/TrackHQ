@@ -242,7 +242,7 @@ CREATE INDEX IF NOT EXISTS idx_samsara_company   ON samsara_devices(company_id);
 CREATE INDEX IF NOT EXISTS idx_samsara_equipment ON samsara_devices(equipment_id);
 
 -- ─────────────────────────────────────────────
--- 9. Booking requests (Phase 5e — hosted POS at trackhq.com/book/<slug>)
+-- 9. Booking requests (Phase 5e — hosted POS at trackhq.tech/book/<slug>)
 -- Public renters request a rental; an operator confirms/rejects later.
 -- The voice agent (Phase 5f) also writes here with source='voice'.
 -- Not the same as rental_history — that's the source-of-truth log of

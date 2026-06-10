@@ -42,7 +42,7 @@ export default function LeadsTable({ leads: initial }: LeadsTableProps) {
       <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center">
         <p className="text-base font-medium text-gray-700">No leads yet.</p>
         <p className="mt-1 text-sm text-gray-500">
-          Form submissions from trackhq.com/demo will appear here.
+          Form submissions from trackhq.tech/demo will appear here.
         </p>
       </div>
     );

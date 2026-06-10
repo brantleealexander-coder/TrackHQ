@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     environment: str = "development"
     port: int = 8000
 
+    # Multi-tenant scoping — temporary single-tenant mode.
+    # Every Supabase query in webhook tools filters by this company_id so
+    # the agent only sees/writes data for one tenant. Replace with per-call
+    # routing (lookup by VAPI assistant_id) once we have >1 customer.
+    demo_company_id: int = 1
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

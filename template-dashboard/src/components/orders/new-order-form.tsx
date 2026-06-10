@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CustomerRow } from "@/lib/customer-queries";
 import type { AvailableAsset } from "@/lib/available-assets";
+import { getTenantConfig } from "@/lib/tenant-config";
 
 type RateType = "daily" | "weekly" | "monthly";
 
@@ -53,6 +54,7 @@ function defaultRate(asset: AvailableAsset, days: number): RateType {
 
 export default function NewOrderForm({ assets }: NewOrderFormProps) {
   const router = useRouter();
+  const { terminology } = getTenantConfig();
 
   // Customer picker state
   const [customer, setCustomer] = useState<CustomerRow | null>(null);
@@ -319,7 +321,7 @@ export default function NewOrderForm({ assets }: NewOrderFormProps) {
         {/* Assets */}
         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500">Add assets</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500">Add {terminology.asset_plural.toLowerCase()}</h2>
             <span className="text-xs tabular-nums text-gray-400">
               {filteredAssets.length} available
             </span>
@@ -334,7 +336,7 @@ export default function NewOrderForm({ assets }: NewOrderFormProps) {
           <ul className="mt-3 max-h-72 divide-y divide-gray-100 overflow-y-auto rounded-lg border border-gray-100">
             {filteredAssets.length === 0 ? (
               <li className="px-3 py-6 text-center text-xs text-gray-400">
-                No matching assets.
+                No matching {terminology.asset_plural.toLowerCase()}.
               </li>
             ) : (
               filteredAssets.map((a) => (
@@ -380,7 +382,7 @@ export default function NewOrderForm({ assets }: NewOrderFormProps) {
 
           {lines.length === 0 ? (
             <p className="rounded-xl border border-dashed border-gray-200 bg-gray-50/40 px-3 py-6 text-center text-xs text-gray-500">
-              No assets added yet.
+              No {terminology.asset_plural.toLowerCase()} added yet.
             </p>
           ) : (
             <ul className="space-y-3">
@@ -431,7 +433,7 @@ export default function NewOrderForm({ assets }: NewOrderFormProps) {
             </div>
             {days > 0 && (
               <p className="mt-1 text-xs text-gray-500">
-                Over {days} day{days === 1 ? "" : "s"} · {lines.length} asset{lines.length === 1 ? "" : "s"}
+                Over {days} day{days === 1 ? "" : "s"} · {lines.length} {lines.length === 1 ? terminology.asset_singular.toLowerCase() : terminology.asset_plural.toLowerCase()}
               </p>
             )}
           </div>

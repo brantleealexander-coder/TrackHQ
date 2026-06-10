@@ -10,6 +10,7 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from app.config import settings
 from app.services.call_service import save_call_report
 
 logger = logging.getLogger(__name__)
@@ -600,15 +601,17 @@ def _fmt_money(n) -> str:
 def _upsert_voice_customer(supabase, name: str, email: str, phone: str):
     """Phase 6f — find-or-create a customers row from voice-booking contact.
 
-    Dedupes by email (case-insensitive) first, then phone. Returns the
-    customer id, or None if the customers table is missing (pre-6 fork)
-    or the insert fails. Best-effort: failures don't block the booking.
+    Dedupes by email (case-insensitive) first, then phone within the demo
+    tenant. Returns the customer id, or None if the customers table is
+    missing (pre-6 fork) or the insert fails. Best-effort: failures don't
+    block the booking.
     """
     try:
         if email:
             existing = (
                 supabase.table("customers")
                 .select("id")
+                .eq("company_id", settings.demo_company_id)
                 .ilike("email", email)
                 .limit(1)
                 .execute()
@@ -619,6 +622,7 @@ def _upsert_voice_customer(supabase, name: str, email: str, phone: str):
             existing = (
                 supabase.table("customers")
                 .select("id")
+                .eq("company_id", settings.demo_company_id)
                 .eq("phone", phone)
                 .limit(1)
                 .execute()
@@ -626,7 +630,7 @@ def _upsert_voice_customer(supabase, name: str, email: str, phone: str):
             if existing.data:
                 return existing.data[0]["id"]
 
-        row = {"name": name}
+        row = {"name": name, "company_id": settings.demo_company_id}
         if email:
             row["email"] = email
         if phone:
@@ -639,6 +643,8 @@ def _upsert_voice_customer(supabase, name: str, email: str, phone: str):
 
 
 def _available_status_keys(supabase) -> set:
+    # statuses table is global (shared across companies) so no company_id
+    # scoping needed here; safe as-is.
     try:
         result = (
             supabase.table("statuses")
@@ -671,6 +677,7 @@ async def tool_check_asset_availability(params: dict, message: dict) -> str:
                 "id, gl_code, equipment_name, year, rate_daily, rate_weekly, "
                 "rate_monthly, categories(name), equipment_status(status)"
             )
+            .eq("company_id", settings.demo_company_id)
             .order("equipment_name")
             .execute()
         ).data or []
@@ -728,7 +735,7 @@ async def tool_quote_rental_rate(params: dict, message: dict) -> str:
     try:
         q = supabase.table("equipment").select(
             "id, gl_code, equipment_name, rate_daily, rate_weekly, rate_monthly"
-        )
+        ).eq("company_id", settings.demo_company_id)
         if gl_code:
             q = q.ilike("gl_code", gl_code)
         else:
@@ -794,7 +801,9 @@ async def tool_book_rental(params: dict, message: dict) -> str:
         rate_type = None
 
     try:
-        q = supabase.table("equipment").select("id, gl_code, equipment_name")
+        q = supabase.table("equipment").select("id, gl_code, equipment_name").eq(
+            "company_id", settings.demo_company_id
+        )
         if gl_code:
             q = q.ilike("gl_code", gl_code)
         else:
@@ -820,9 +829,10 @@ async def tool_book_rental(params: dict, message: dict) -> str:
     )
 
     payload = {
+        "company_id": settings.demo_company_id,
         "equipment_id": unit["id"],
         "renter_name": caller_name,
-        "renter_email": caller_email or "voice@trackhq.com",
+        "renter_email": caller_email or "voice@trackhq.tech",
         "renter_phone": caller_phone or None,
         "rental_start": rental_start,
         "rental_end": rental_end,
